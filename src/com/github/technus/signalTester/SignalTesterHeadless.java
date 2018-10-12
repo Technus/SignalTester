@@ -1,6 +1,5 @@
 package com.github.technus.signalTester;
 
-import com.bulenkov.darcula.DarculaLaf;
 import com.github.technus.dbAdditions.mongoDB.MongoClientHandler;
 import com.github.technus.dbAdditions.mongoDB.SafePOJO;
 import com.github.technus.dbAdditions.mongoDB.pojo.ThrowableLog;
@@ -8,11 +7,11 @@ import com.github.technus.signalTester.utility.Utility;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
 import com.sun.security.auth.module.NTSystem;
+import javafx.scene.layout.BorderPane;
 import org.bson.Document;
 import org.bson.codecs.configuration.CodecRegistry;
 import org.bson.types.ObjectId;
 
-import javax.swing.*;
 import java.awt.*;
 import java.io.File;
 import java.net.InetAddress;
@@ -20,12 +19,16 @@ import java.util.Locale;
 
 import static com.github.technus.dbAdditions.mongoDB.pojo.ThrowableLog.THROWABLE_LOG_COLLECTION_CODECS;
 
-public class Main implements AutoCloseable{
+public class SignalTesterHeadless implements AutoCloseable{
     private final MongoClientHandler localClient, remoteClient;
     private final MongoCollection<ThrowableLog> throwableLogCollectionLocal,throwableLogCollectionRemote;
     private final MongoCollection<Configuration> configurationCollectionLocal,configurationCollectionRemote;
 
-    public Main() {
+    private BorderPane mainPane;
+
+    public SignalTesterHeadless() {
+        ThrowableLog.currentApplicationName ="SignalTester";
+
         Utility.throwableConsumer = throwable -> {
             if(getThrowableLogCollectionLocal()!=null) {
                 getThrowableLogCollectionLocal().insertOne(new ThrowableLog(throwable));
@@ -94,9 +97,18 @@ public class Main implements AutoCloseable{
         return configurationCollectionRemote;
     }
 
-    public static void main(String[] args) {
-        ThrowableLog.currentApplicationName ="SignalTester";
-
+    public static void main(String... args) {
+        Locale.setDefault(Locale.US);
+        showSplashScreen(args);
+        try{
+            new SignalTesterHeadless();
+        }catch (Throwable t){
+            Utility.showThrowableMain(t,"Unhandled throwable!");
+            System.exit(0);
+        }
+    }
+    
+    public static void showSplashScreen(String... args){
         try {
             SplashScreen splashScreen=SplashScreen.getSplashScreen();
             if(splashScreen!=null){
@@ -120,18 +132,8 @@ public class Main implements AutoCloseable{
                     splashScreen.update();
                 }
             }
-
-            UIManager.setLookAndFeel(new DarculaLaf());
-            Locale.setDefault(Locale.US);
         } catch (Exception e) {
-            Utility.showThrowableMain(e,"Cannot load Look and Feel!");
-            System.exit(0);
-        }
-
-        try{
-            new Main();
-        }catch (Throwable t){
-            Utility.showThrowableMain(t,"Unhandled throwable!");
+            Utility.showThrowableMain(e,"Cannot load splash screen!");
             System.exit(0);
         }
     }

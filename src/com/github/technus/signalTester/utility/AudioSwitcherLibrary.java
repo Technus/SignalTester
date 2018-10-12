@@ -7,7 +7,7 @@ import com.sun.jna.WString;
 import com.sun.jna.ptr.PointerByReference;
 
 public interface AudioSwitcherLibrary extends Library {
-    String JNA_LIBRARY_NAME ="";// Main.LIB_LOCATION.getAbsolutePath()+File.separator+ Platform.RESOURCE_PREFIX+ File.separator+"AudioDefaultSwitcher.dll";
+    String JNA_LIBRARY_NAME ="";// SignalTesterHeadless.LIB_LOCATION.getAbsolutePath()+File.separator+ Platform.RESOURCE_PREFIX+ File.separator+"AudioDefaultSwitcher.dll";
     //NativeLibrary JNA_NATIVE_LIB = NativeLibrary.getInstance(AudioSwitcherLibrary.JNA_LIBRARY_NAME);
     AudioSwitcherLibrary INSTANCE = (AudioSwitcherLibrary) Native.loadLibrary(AudioSwitcherLibrary.JNA_LIBRARY_NAME, AudioSwitcherLibrary.class);
 
