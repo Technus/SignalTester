@@ -21,7 +21,7 @@ public class AudioSwitcher {
         return AudioSwitcherLibrary.INSTANCE.is_default(instance,new WString(audioDevice.id),type.getValue(),role.getValue());
     }
 
-    private void getDevicesList(HashSet<AudioDevice> devices, AudioSwitcherLibrary.DeviceType type, AudioSwitcherLibrary.DeviceState state){
+    private void getDevicesList(HashSet<AudioDevice> devices, AudioSwitcherLibrary.DeviceType type, AudioSwitcherLibrary.DeviceState state) throws Exception{
         PointerByReference pointer=new PointerByReference();
         AudioSwitcherLibrary.INSTANCE.get_device_collection(pointer,type.getValue(),state.getValue());
 
@@ -30,15 +30,11 @@ public class AudioSwitcher {
             return;
         }
         for(String s:string.split("\\n")){
-            try {
-                devices.add(new AudioDevice(s.split("\\|"),type,state));
-            }catch (Exception e){
-                Utility.showThrowableMain(null,e,"Error getting audio devices");
-            }
+            devices.add(new AudioDevice(s.split("\\|"),type,state));
         }
     }
 
-    public AudioDevice[] getDevices(AudioSwitcherLibrary.DeviceType type,AudioSwitcherLibrary.DeviceState state){
+    public AudioDevice[] getDevices(AudioSwitcherLibrary.DeviceType type,AudioSwitcherLibrary.DeviceState state) throws Exception{
         HashSet<AudioDevice> set=new HashSet<>();
         if(type==AudioSwitcherLibrary.DeviceType.All && state==AudioSwitcherLibrary.DeviceState.All){
             for(AudioSwitcherLibrary.DeviceType type1:AudioSwitcherLibrary.DeviceType.values()){
@@ -64,7 +60,7 @@ public class AudioSwitcher {
         return set.toArray(new AudioDevice[0]);
     }
 
-    public AudioDevice[] getPresentDevices(AudioSwitcherLibrary.DeviceType type,AudioSwitcherLibrary.DeviceState state){
+    public AudioDevice[] getPresentDevices(AudioSwitcherLibrary.DeviceType type,AudioSwitcherLibrary.DeviceState state) throws Exception{
         HashSet<AudioDevice> set=new HashSet<>();
         if(type==AudioSwitcherLibrary.DeviceType.All && state==AudioSwitcherLibrary.DeviceState.All){
             for(AudioSwitcherLibrary.DeviceType type1:AudioSwitcherLibrary.DeviceType.values()){

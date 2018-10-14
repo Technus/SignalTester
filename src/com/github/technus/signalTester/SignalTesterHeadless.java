@@ -3,19 +3,20 @@ package com.github.technus.signalTester;
 import com.github.technus.dbAdditions.mongoDB.MongoClientHandler;
 import com.github.technus.dbAdditions.mongoDB.SafePOJO;
 import com.github.technus.dbAdditions.mongoDB.pojo.ThrowableLog;
-import com.github.technus.signalTester.utility.Utility;
+import com.mongodb.MongoTimeoutException;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
 import com.sun.security.auth.module.NTSystem;
-import javafx.scene.layout.BorderPane;
 import org.bson.Document;
 import org.bson.codecs.configuration.CodecRegistry;
 import org.bson.types.ObjectId;
 
-import java.awt.*;
-import java.io.File;
 import java.net.InetAddress;
+import java.time.Instant;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Locale;
+import java.util.function.Consumer;
 
 import static com.github.technus.dbAdditions.mongoDB.pojo.ThrowableLog.THROWABLE_LOG_COLLECTION_CODECS;
 
@@ -23,18 +24,26 @@ public class SignalTesterHeadless implements AutoCloseable{
     private final MongoClientHandler localClient, remoteClient;
     private final MongoCollection<ThrowableLog> throwableLogCollectionLocal,throwableLogCollectionRemote;
     private final MongoCollection<Configuration> configurationCollectionLocal,configurationCollectionRemote;
-
-    private BorderPane mainPane;
+    private Consumer<Throwable> throwableConsumer;
 
     public SignalTesterHeadless() {
         ThrowableLog.currentApplicationName ="SignalTester";
 
-        Utility.throwableConsumer = throwable -> {
-            if(getThrowableLogCollectionLocal()!=null) {
-                getThrowableLogCollectionLocal().insertOne(new ThrowableLog(throwable));
-            }else {
-
+        throwableConsumer = throwable -> {
+            ThrowableLog log;
+            try {
+                log = new ThrowableLog(throwable);
+            }catch (Exception e){
+                log = new ThrowableLog(throwable,10);
             }
+            if(getThrowableLogCollectionLocal()!=null) {
+                try {
+                    getThrowableLogCollectionLocal().insertOne(log);
+                    return;
+                }catch (Exception ignored){}
+            }
+
+            //todo filebackup?
         };
 
         CodecRegistry configurationCollectionCodecs=
@@ -64,6 +73,17 @@ public class SignalTesterHeadless implements AutoCloseable{
         });
         MongoDatabase localDatabase = localClient.getDatabase();
         MongoDatabase remoteDatabase = remoteClient.getDatabase();
+
+        try {
+            localDatabase.runCommand(new Document().append("ping", ""));
+        }catch (MongoTimeoutException e){
+            logError(e);
+        }
+        try {
+            remoteDatabase.runCommand(new Document().append("ping", ""));
+        }catch (MongoTimeoutException e){
+            logError(e);
+        }
 
         throwableLogCollectionLocal= localDatabase.getCollection(ThrowableLog.class.getSimpleName(),ThrowableLog.class)
                 .withCodecRegistry(THROWABLE_LOG_COLLECTION_CODECS);
@@ -97,48 +117,20 @@ public class SignalTesterHeadless implements AutoCloseable{
         return configurationCollectionRemote;
     }
 
-    public static void main(String... args) {
-        Locale.setDefault(Locale.US);
-        showSplashScreen(args);
-        try{
-            new SignalTesterHeadless();
-        }catch (Throwable t){
-            Utility.showThrowableMain(t,"Unhandled throwable!");
-            System.exit(0);
-        }
-    }
-    
-    public static void showSplashScreen(String... args){
-        try {
-            SplashScreen splashScreen=SplashScreen.getSplashScreen();
-            if(splashScreen!=null){
-                Graphics2D graphics2D=splashScreen.createGraphics();
-                if(graphics2D!=null){
-                    graphics2D.setComposite(AlphaComposite.Clear);
-                    //g.fillRect(130,250,280,40);
-                    graphics2D.setPaintMode();
-                    graphics2D.setColor(Color.CYAN);
-                    graphics2D.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                    graphics2D.setFont(new Font("Consolas",Font.BOLD,55));
-                    FontMetrics metrics=graphics2D.getFontMetrics();
-                    int lastY;
-                    graphics2D.drawString("Signal Tester", metrics.getMaxAdvance(), lastY=metrics.getMaxAscent()+metrics.getMaxDescent());
-                    if(args!=null && args[0] != null && !"_".equals(args[0])){
-                        File f=new File(args[0]);
-                        graphics2D.setFont(new Font("Consolas",Font.BOLD,30));
-                        metrics=graphics2D.getFontMetrics();
-                        graphics2D.drawString(f.getName().replaceFirst("\\.test\\.xml",""), metrics.getMaxAdvance(), lastY+metrics.getMaxAscent()+metrics.getMaxDescent()+metrics.getMaxDescent());
-                    }
-                    splashScreen.update();
-                }
+    public void logError(Throwable t) {
+        if (throwableConsumer != null) {
+            try {
+                throwableConsumer.accept(t);
+
+            } catch (Error error) {
+                Error e = new Error("Unable to consume throwable! " + t.getClass().getName() + ": " + t.getMessage(), error);
+                e.setStackTrace(t.getStackTrace());
+                throwableConsumer.accept(e);
             }
-        } catch (Exception e) {
-            Utility.showThrowableMain(e,"Cannot load splash screen!");
-            System.exit(0);
         }
     }
 
-    public static NTSystem ntSystem=new NTSystem();
+    private static NTSystem ntSystem=new NTSystem();
     public static String getUserName(){
         return ntSystem.getDomain()+"\\"+ntSystem.getName();
     }
@@ -153,5 +145,15 @@ public class SignalTesterHeadless implements AutoCloseable{
 
     public static String getFullName(){
         return getSystemName()+"\\"+getUserName();
+    }
+
+    public static void main(String... args) {
+        Locale.setDefault(Locale.US);
+        try{
+            new SignalTesterHeadless();
+        }catch (Throwable t){
+            t.printStackTrace();
+            System.exit(1);
+        }
     }
 }
