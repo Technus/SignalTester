@@ -37,13 +37,9 @@ public class ThrowableLog {
     private final Instant time;
 
     public ThrowableLog(Throwable t){
-        this(t,null);
-    }
-
-    public ThrowableLog(Throwable t,Thread thread) {
         time=Instant.now();
 
-        threadLog=new ThreadLog(thread==null?Thread.currentThread():thread);
+        threadLog=new ThreadLog(Thread.currentThread());
 
         throwable = t;
 
@@ -66,8 +62,37 @@ public class ThrowableLog {
         }
         applicationName = currentApplicationName;
 
-        stackTrace = new ArrayList<>();
-        stackTrace.addAll(Arrays.asList(t.getStackTrace()));
+        stackTrace = new ArrayList<>(Arrays.asList(t.getStackTrace()));
+    }
+
+    public ThrowableLog(Throwable t, int depthLevelsCount){
+        depthLevelsCount--;
+        time=Instant.now();
+
+        threadLog=new ThreadLog(Thread.currentThread());
+
+        throwable = t;
+
+        throwableClass = t.getClass();
+        message = t.getMessage();
+
+        if (t.getCause() != t && t.getCause()!=null) {
+            cause = new ThrowableLog(t.getCause(),depthLevelsCount);
+        } else {
+            cause = null;
+        }
+        if (t.getSuppressed().length > 0) {
+            suppressed = new ArrayList<>();
+            for (Throwable supressedThrowable :
+                    t.getSuppressed()) {
+                suppressed.add(new ThrowableLog(supressedThrowable,depthLevelsCount));
+            }
+        } else {
+            suppressed = null;
+        }
+
+        applicationName = currentApplicationName;
+        stackTrace = new ArrayList<>(Arrays.asList(t.getStackTrace()));
     }
 
     @BsonCreator

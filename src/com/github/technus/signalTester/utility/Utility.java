@@ -1,15 +1,6 @@
 package com.github.technus.signalTester.utility;
 
-import javax.swing.*;
-import java.awt.*;
-import java.io.ByteArrayOutputStream;
-import java.io.PrintStream;
-import java.util.function.Consumer;
-
 public class Utility {
-    public static Component defaultComponent;
-    public static Consumer<Throwable> throwableConsumer;
-
     private Utility(){}
 
     private final static char[] hexArray = "0123456789ABCDEF".toCharArray();
@@ -91,68 +82,4 @@ public class Utility {
         return doubles;
     }
     //endregion
-
-    public static int showConfirmThrowableMain(Throwable throwable,String title,int option){
-        return Utility.showConfirmThrowable(Utility.defaultComponent,throwable,title,option);
-    }
-
-    public static void showThrowableMain(Throwable throwable,String title){
-        Utility.showThrowable(Utility.defaultComponent,throwable,title);
-    }
-
-    public static int showConfirmThrowableMain(Component component,Throwable throwable,String title,int option){
-        return Utility.showConfirmThrowable(component==null?Utility.defaultComponent :component,throwable,title,option);
-    }
-
-    public static void showThrowableMain(Component component,Throwable throwable,String title){
-        Utility.showThrowable(component==null?Utility.defaultComponent :component,throwable,title);
-    }
-
-    private static int showConfirmThrowable(Component component,Throwable throwable,String title,int option){
-        logError(throwable);
-        return JOptionPane.showConfirmDialog(component,scrollThrowable(throwable),title,option);
-    }
-
-    private static void showThrowable(Component component,Throwable throwable,String title){
-        logError(throwable);
-        JOptionPane.showMessageDialog(component,scrollThrowable(throwable),title,JOptionPane.ERROR_MESSAGE);
-    }
-
-    private static JScrollPane scrollThrowable(Throwable t){
-        return scrollable(printThrowable(t));
-    }
-
-    private static JScrollPane scrollable(String t){
-        JTextArea area=new JTextArea();
-        area.setEditable(false);
-        area.setText(t);
-        JScrollPane pane=new JScrollPane(area);
-        pane.setPreferredSize(new Dimension(700,500));
-        return pane;
-    }
-
-    private static String printThrowable(Throwable t){
-        ByteArrayOutputStream outputStream=new ByteArrayOutputStream();
-        PrintStream printStream=new PrintStream(outputStream);
-        t.printStackTrace(printStream);
-        t.printStackTrace();
-        try {
-            outputStream.flush();
-        }catch (Exception e){
-            e.printStackTrace();
-        }
-        return new String(outputStream.toByteArray());
-    }
-
-    public static void logError(Throwable t){
-        try {
-            if(throwableConsumer!=null) {
-                throwableConsumer.accept(t);
-            }
-        }catch (Error error){
-            Error e=new Error("Unable to consume throwable! "+ t.getClass().getName()+ ": "+t.getMessage(),error);
-            e.setStackTrace(t.getStackTrace());
-            throwableConsumer.accept(e);
-        }
-    }
 }

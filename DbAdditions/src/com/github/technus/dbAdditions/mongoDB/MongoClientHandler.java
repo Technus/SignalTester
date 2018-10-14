@@ -63,7 +63,6 @@ public class MongoClientHandler implements AutoCloseable{
         }
 
         mongoDatabase=client.getDatabase(database);
-        mongoDatabase.runCommand(new Document().append("ping", ""));
     }
 
     public MongoDatabase getDatabase(){
