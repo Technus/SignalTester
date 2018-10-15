@@ -3,6 +3,8 @@ package com.github.technus.signalTester.fx.main;
 import com.github.technus.signalTester.SignalTesterHeadless;
 import javafx.scene.control.Alert;
 import javafx.scene.control.ButtonType;
+import javafx.scene.control.Label;
+import javafx.scene.control.ScrollPane;
 import javafx.scene.layout.AnchorPane;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.Region;
@@ -44,9 +46,13 @@ public class MainWindow {
 
     private ButtonType showConfirmThrowable(Region component,Throwable throwable,ButtonType... buttonTypes){
         signalTesterHeadless.logError(throwable);
-        Alert alert = new Alert(Alert.AlertType.ERROR,printThrowable(throwable),buttonTypes);
+        Alert alert = new Alert(Alert.AlertType.ERROR,null,buttonTypes);
         alert.setTitle(throwable.getClass().getSimpleName());
         alert.setHeaderText(throwable.getLocalizedMessage());
+        ScrollPane scrollPane=new ScrollPane();
+        Label label=new Label(printThrowable(throwable));
+        scrollPane.setContent(label);
+        alert.getDialogPane().setContent(scrollPane);
         alert.setResizable(true);
         Optional<ButtonType> buttonTypeOptional=alert.showAndWait();
         return buttonTypeOptional.orElse(ButtonType.CLOSE);
