@@ -17,7 +17,7 @@ import java.util.Locale;
 public class SignalTester extends Application {
     @Override
     public void start(Stage primaryStage) {
-        new Thread(()->{
+        //new Thread(()->{
             Parent finalParent,root=null;
             try {
                 root = FXMLLoader.load(MainWindow.class.getResource("MainWindow.fxml"));
@@ -26,16 +26,16 @@ public class SignalTester extends Application {
             }
             if(root!=null) {
                 finalParent = root;
-                Platform.runLater(() -> {
+        //        Platform.runLater(() -> {
                     primaryStage.setScene(new Scene(finalParent));
                     primaryStage.setTitle("SignalTester");
                     primaryStage.show();
                     if(SplashScreen.getSplashScreen()!=null) {
                         SplashScreen.getSplashScreen().close();
                     }
-                });
+         //       });
             }
-        }).start();
+        //}).start();
     }
 
     public static void main(String... args) {

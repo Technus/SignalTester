@@ -1,6 +1,9 @@
 package com.github.technus.signalTester.fx.main;
 
 import com.github.technus.signalTester.SignalTesterHeadless;
+import javafx.scene.control.Alert;
+import javafx.scene.control.ButtonType;
+import javafx.scene.layout.AnchorPane;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.Region;
 
@@ -8,42 +11,49 @@ import javax.swing.*;
 import java.awt.*;
 import java.io.ByteArrayOutputStream;
 import java.io.PrintStream;
+import java.util.Optional;
 
 public class MainWindow {
     private final SignalTesterHeadless signalTesterHeadless;
 
     public MainWindow(){
         signalTesterHeadless=new SignalTesterHeadless();
+        showThrowableMain(new Exception("U ZUCC"));
     }
 
+    public AnchorPane rootPane;
     public BorderPane mainPane;
 
     public Region defaultRegion;
 
-    public int showConfirmThrowableMain(Throwable throwable,int option){
-        return showConfirmThrowable(defaultRegion,throwable,option);
+    public ButtonType showConfirmThrowableMain(Throwable throwable,ButtonType... buttonTypes){
+        return showConfirmThrowable(defaultRegion,throwable,buttonTypes);
     }
 
     public void showThrowableMain(Throwable throwable){
         showThrowable(defaultRegion,throwable);
     }
 
-    public int showConfirmThrowableMain(Region component, Throwable throwable, int option){
-        return showConfirmThrowable(component==null?defaultRegion:component,throwable,option);
+    public ButtonType showConfirmThrowableMain(Region component, Throwable throwable, ButtonType... buttonTypes){
+        return showConfirmThrowable(component==null?defaultRegion:component,throwable,buttonTypes);
     }
 
     public void showThrowableMain(Region component,Throwable throwable){
         showThrowable(component==null?defaultRegion:component,throwable);
     }
 
-    private int showConfirmThrowable(Region component,Throwable throwable,int option){
+    private ButtonType showConfirmThrowable(Region component,Throwable throwable,ButtonType... buttonTypes){
         signalTesterHeadless.logError(throwable);
-        return JOptionPane.showConfirmDialog(null,scrollThrowable(throwable),throwable.getClass().getSimpleName(),option);
+        Alert alert = new Alert(Alert.AlertType.ERROR,printThrowable(throwable),buttonTypes);
+        alert.setTitle(throwable.getClass().getSimpleName());
+        alert.setHeaderText(throwable.getLocalizedMessage());
+        alert.setResizable(true);
+        Optional<ButtonType> buttonTypeOptional=alert.showAndWait();
+        return buttonTypeOptional.orElse(ButtonType.CLOSE);
     }
 
     private void showThrowable(Region component,Throwable throwable){
-        signalTesterHeadless.logError(throwable);
-        JOptionPane.showMessageDialog(null,scrollThrowable(throwable),throwable.getClass().getSimpleName(),JOptionPane.ERROR_MESSAGE);
+        showConfirmThrowable(component,throwable);
     }
 
     private JScrollPane scrollThrowable(Throwable t){
