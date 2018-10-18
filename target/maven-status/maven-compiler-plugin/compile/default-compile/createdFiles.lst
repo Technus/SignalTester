@@ -1,0 +1,10 @@
+com\github\technus\signalTester\utility\AudioSwitcher.class
+com\github\technus\signalTester\utility\AudioSwitcherLibrary$DeviceRole.class
+com\github\technus\signalTester\utility\Utility.class
+com\github\technus\signalTester\utility\AudioSwitcherLibrary$DeviceState.class
+com\github\technus\signalTester\Configuration.class
+com\github\technus\signalTester\utility\AudioDevice.class
+com\github\technus\signalTester\SignalTesterHeadless.class
+com\github\technus\signalTester\utility\AudioSwitcherLibrary$DeviceType.class
+com\github\technus\signalTester\utility\AudioSwitcherLibrary.class
+com\github\technus\signalTester\utility\NirCmd.class

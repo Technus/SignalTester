@@ -1,0 +1,70 @@
+/*
+ * This is an adjustment of the original modena.css for a consistent dark theme.
+ * Original modena.css here: https://gist.github.com/maxd/63691840fc372f22f470.
+ */
+
+/* Redefine base colors */
+.root {
+    -fx-base: rgb(0, 35, 100);
+    -fx-background: rgb(0, 10, 35);
+
+    /* make controls (buttons, thumb, etc.) slightly lighter */
+    -fx-color: derive(-fx-base, 15%);
+
+    /* text fields and table rows background */
+    -fx-control-inner-background: rgb(0, 0, 20);
+    /* version of -fx-control-inner-background for alternative rows */
+    -fx-control-inner-background-alt: derive(-fx-control-inner-background, 2.5%);
+
+    /* text colors depending on background's brightness */
+    -fx-light-text-color: rgb(172, 210, 230);
+    -fx-mid-text-color: rgb(61, 88, 102);
+    -fx-dark-text-color: rgb(0, 17, 26);
+
+    /* A bright blue for highlighting/accenting objects.  For example: selected
+     * text; selected items in menus, lists, trees, and tables; progress bars */
+    -fx-accent: rgb(0, 64, 128);
+
+    /* color of non-focused yet selected elements */
+    -fx-selection-bar-non-focused: rgb(0, 11, 64);
+}
+
+/* Fix derived prompt color for text fields */
+.text-input {
+    -fx-prompt-text-fill: derive(-fx-control-inner-background, +50%);
+}
+
+/* Keep prompt invisible when focused (above color fix overrides it) */
+.text-input:focused {
+    -fx-prompt-text-fill: transparent;
+}
+
+/* Fix scroll bar buttons arrows colors */
+.scroll-bar > .increment-button > .increment-arrow,
+.scroll-bar > .decrement-button > .decrement-arrow {
+    -fx-background-color: -fx-mark-highlight-color, rgb(0, 17, 26);
+}
+
+.scroll-bar > .increment-button:hover > .increment-arrow,
+.scroll-bar > .decrement-button:hover > .decrement-arrow {
+    -fx-background-color: -fx-mark-highlight-color, rgb(61, 88, 102);
+}
+
+.scroll-bar > .increment-button:pressed > .increment-arrow,
+.scroll-bar > .decrement-button:pressed > .decrement-arrow {
+    -fx-background-color: -fx-mark-highlight-color, rgb(172, 210, 230);
+}
+
+.tab-pane *.tab-header-background {
+    -fx-background-color: -fx-outer-border, -fx-inner-border, -fx-control-inner-background;
+    -fx-effect: innershadow(two-pass-box , rgba(0,0,0,0) , 4, 0 , 0 , 0);
+}
+
+.scroll-bar:horizontal {
+    -fx-background-color: -fx-background, linear-gradient(to bottom, derive(-fx-base,-3%), derive(-fx-base,5%) 50%, derive(-fx-base,-3%));
+    -fx-background-insets: 0, 1 0 1 0;
+}
+.scroll-bar:vertical {
+    -fx-background-color: -fx-background, linear-gradient(to right, derive(-fx-base,-3%), derive(-fx-base,5%) 50%, derive(-fx-base,-3%));
+    -fx-background-insets: 0, 0 1 0 1;
+}

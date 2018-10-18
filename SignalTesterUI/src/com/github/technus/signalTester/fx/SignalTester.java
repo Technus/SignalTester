@@ -17,34 +17,29 @@ import java.util.Locale;
 public class SignalTester extends Application {
     @Override
     public void start(Stage primaryStage) {
-        //new Thread(()->{
-            Parent finalParent,root=null;
-            try {
-                root = FXMLLoader.load(MainWindow.class.getResource("MainWindow.fxml"));
-            }catch (IOException e){
-                e.printStackTrace();
-            }
-            if(root!=null) {
-                finalParent = root;
-        //        Platform.runLater(() -> {
-                    primaryStage.setScene(new Scene(finalParent));
-                    primaryStage.setTitle("SignalTester");
-                    primaryStage.show();
-                    if(SplashScreen.getSplashScreen()!=null) {
-                        SplashScreen.getSplashScreen().close();
-                    }
-         //       });
-            }
-        //}).start();
+        Parent finalParent,root=null;
+        try {
+            root = FXMLLoader.load(MainWindow.class.getResource("MainWindow.fxml"));
+        }catch (IOException e){
+            e.printStackTrace();
+        }
+        if(root!=null) {
+            finalParent = root;
+                primaryStage.setScene(new Scene(finalParent));
+                primaryStage.setTitle("SignalTester");
+                primaryStage.show();
+                if(SplashScreen.getSplashScreen()!=null) {
+                    SplashScreen.getSplashScreen().close();
+                }
+        }
     }
 
     public static void main(String... args) {
         Locale.setDefault(Locale.US);
-        Graphics2D graphics2D=null;
         try {
             SplashScreen splashScreen = SplashScreen.getSplashScreen();
             if (splashScreen != null) {
-                graphics2D = splashScreen.createGraphics();
+                Graphics2D graphics2D = splashScreen.createGraphics();
                 if (graphics2D != null) {
                     graphics2D.setComposite(AlphaComposite.Clear);
                     graphics2D.setPaintMode();
