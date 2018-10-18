@@ -2,3 +2,6 @@
 SignalTester2.iml
 out/
 *.iml
+DbAdditions/target/
+SignalTesterUI/target/
+target/
