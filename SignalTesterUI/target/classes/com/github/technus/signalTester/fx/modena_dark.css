@@ -17,8 +17,8 @@
     -fx-control-inner-background-alt: derive(-fx-control-inner-background, 2.5%);
 
     /* text colors depending on background's brightness */
-    -fx-light-text-color: rgb(172, 210, 230);
-    -fx-mid-text-color: rgb(61, 88, 102);
+    -fx-light-text-color: rgb(150, 210, 230);
+    -fx-mid-text-color: rgb(40, 88, 102);
     -fx-dark-text-color: rgb(0, 17, 26);
 
     /* A bright blue for highlighting/accenting objects.  For example: selected
@@ -47,12 +47,12 @@
 
 .scroll-bar > .increment-button:hover > .increment-arrow,
 .scroll-bar > .decrement-button:hover > .decrement-arrow {
-    -fx-background-color: -fx-mark-highlight-color, rgb(61, 88, 102);
+    -fx-background-color: -fx-mark-highlight-color, rgb(40, 88, 102);
 }
 
 .scroll-bar > .increment-button:pressed > .increment-arrow,
 .scroll-bar > .decrement-button:pressed > .decrement-arrow {
-    -fx-background-color: -fx-mark-highlight-color, rgb(172, 210, 230);
+    -fx-background-color: -fx-mark-highlight-color, rgb(150, 210, 230);
 }
 
 .tab-pane *.tab-header-background {
