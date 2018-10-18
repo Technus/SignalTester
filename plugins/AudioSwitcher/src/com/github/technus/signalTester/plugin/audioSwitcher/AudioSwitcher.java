@@ -1,4 +1,4 @@
-package com.github.technus.signalTester.utility;
+package com.github.technus.signalTester.plugin.audioSwitcher;
 
 import com.sun.jna.Pointer;
 import com.sun.jna.WString;

@@ -1,4 +1,4 @@
-package com.github.technus.signalTester.utility;
+package com.github.technus.signalTester.plugin.audioSwitcher;
 
 import java.util.Arrays;
 

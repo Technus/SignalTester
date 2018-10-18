@@ -1,4 +1,4 @@
-package com.github.technus.signalTester.utility;
+package com.github.technus.signalTester.plugin.audioSwitcher;
 
 import com.sun.jna.Library;
 import com.sun.jna.Native;
@@ -9,7 +9,7 @@ import com.sun.jna.ptr.PointerByReference;
 public interface AudioSwitcherLibrary extends Library {
     String JNA_LIBRARY_NAME ="";// SignalTesterHeadless.LIB_LOCATION.getAbsolutePath()+File.separator+ Platform.RESOURCE_PREFIX+ File.separator+"AudioDefaultSwitcher.dll";
     //NativeLibrary JNA_NATIVE_LIB = NativeLibrary.getInstance(AudioSwitcherLibrary.JNA_LIBRARY_NAME);
-    AudioSwitcherLibrary INSTANCE = (AudioSwitcherLibrary) Native.loadLibrary(AudioSwitcherLibrary.JNA_LIBRARY_NAME, AudioSwitcherLibrary.class);
+    AudioSwitcherLibrary INSTANCE = Native.load(AudioSwitcherLibrary.JNA_LIBRARY_NAME, AudioSwitcherLibrary.class);
 
     boolean switch_to(WString deviceId, int DeviceRole);
 

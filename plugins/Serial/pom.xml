@@ -1,20 +1,13 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
   xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
   <modelVersion>4.0.0</modelVersion>
-  <groupId>com.github.technus.signalTester.plugin.hid</groupId>
-  <artifactId>PureJavaHID</artifactId>
+  <groupId>com.github.technus.signalTester.plugin.serial</groupId>
+  <artifactId>serial</artifactId>
   <packaging>jar</packaging>
   <version>1.0-SNAPSHOT</version>
-  <name>SignalTester plugin PureJavaHID</name>
+  <name>SignalTester plugin Serial Port</name>
   <url>https://github.com/Technus/SignalTester</url>
   <dependencies>
-    <dependency>
-      <groupId>com.github.nyholku.purejavahidapi</groupId>
-      <artifactId>purejavahidapi</artifactId>
-      <version>0.0.10</version>
-      <scope>system</scope>
-      <systemPath>${basedir}/lib/purejavahidapi.jar</systemPath>
-    </dependency>
     <dependency>
       <groupId>com.github.technus.signalTester</groupId>
       <artifactId>signalTester</artifactId>
