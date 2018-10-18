@@ -38,10 +38,11 @@ public interface AudioSwitcherLibrary extends Library {
     enum DeviceState{
         Active(1),Disabled(2),NotPresent(4),Unplugged(8),All(15);
 
+        private int value;
+
         DeviceState(int value){
             this.value=value;
         }
-        private int value;
         public int getValue() {
             return value;
         }
