@@ -2,7 +2,7 @@
   xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
   <modelVersion>4.0.0</modelVersion>
   <groupId>com.github.technus.signalTester.plugin.nirCmd</groupId>
-  <artifactId>nirCmd</artifactId>
+  <artifactId>nirCmdPlugin</artifactId>
   <packaging>jar</packaging>
   <version>1.0-SNAPSHOT</version>
   <name>SignalTester plugin NirCmd</name>
@@ -11,9 +11,54 @@
     <dependency>
       <groupId>com.github.technus.signalTester</groupId>
       <artifactId>signalTester</artifactId>
+      <version>1.0-SNAPSHOT</version>
+    </dependency>
+    <dependency>
+      <groupId>com.github.technus.signalTester.plugin.nirCmd</groupId>
+      <artifactId>nirCmdNatives</artifactId>
+      <version>1.0-SNAPSHOT</version>
+      <classifier>bin</classifier>
+      <type>zip</type>
     </dependency>
   </dependencies>
   <build>
     <sourceDirectory>src</sourceDirectory>
+    <plugins>
+      <plugin>
+        <artifactId>maven-compiler-plugin</artifactId>
+        <configuration>
+          <source>1.8</source>
+          <target>1.8</target>
+          <encoding>UTF-8</encoding>
+        </configuration>
+      </plugin>
+      <plugin>
+        <artifactId>maven-dependency-plugin</artifactId>
+        <executions>
+          <execution>
+            <id>unpack-natives</id>
+            <phase>package</phase>
+            <goals>
+              <goal>unpack-dependencies</goal>
+            </goals>
+            <configuration>
+              <includeArtifactIds>native</includeArtifactIds>
+              <outputDirectory>
+                ${project.build.directory}/
+              </outputDirectory>
+            </configuration>
+          </execution>
+          <execution>
+            <phase>compile</phase>
+            <goals>
+              <goal>copy-dependencies</goal>
+            </goals>
+            <configuration>
+              <outputDirectory>${project.build.directory}/lib</outputDirectory>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+    </plugins>
   </build>
 </project>

@@ -2,26 +2,20 @@
   xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
   <modelVersion>4.0.0</modelVersion>
   <groupId>com.github.technus.signalTester</groupId>
-  <artifactId>signalTesterPackage</artifactId>
-  <packaging>pom</packaging>
+  <artifactId>signalTesterCore</artifactId>
+  <packaging>jar</packaging>
   <version>1.0-SNAPSHOT</version>
-  <name>SignalTester</name>
+  <name>SignalTester Core</name>
   <url>https://github.com/Technus/SignalTester</url>
-    <modules>
-        <module>DbAdditions</module>
-        <module>SignalTesterCore</module>
-        <module>plugins/AudioSwitcher/native</module>
-        <module>plugins/AudioSwitcher</module>
-        <module>plugins/Jython</module>
-        <module>plugins/NirCmd/native</module>
-        <module>plugins/NirCmd</module>
-        <module>plugins/PureJavaHID</module>
-        <module>plugins/Serial/native</module>
-        <module>plugins/Serial</module>
-        <module>plugins/WaveForms</module>
-        <module>SignalTesterUI</module>
-    </modules>
+  <dependencies>
+      <dependency>
+          <groupId>com.github.technus.signalTester.dbAdditions</groupId>
+          <artifactId>dbAdditions</artifactId>
+          <version>1.0-SNAPSHOT</version>
+      </dependency>
+  </dependencies>
     <build>
+        <sourceDirectory>src</sourceDirectory>
         <plugins>
             <plugin>
                 <artifactId>maven-compiler-plugin</artifactId>
