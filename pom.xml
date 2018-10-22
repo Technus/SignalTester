@@ -10,6 +10,7 @@
     <modules>
         <module>DbAdditions</module>
         <module>SignalTesterCore</module>
+        <module>SignalTesterUI</module>
         <module>plugins/AudioSwitcher/native</module>
         <module>plugins/AudioSwitcher</module>
         <module>plugins/Jython</module>
@@ -19,7 +20,6 @@
         <module>plugins/Serial/native</module>
         <module>plugins/Serial</module>
         <module>plugins/WaveForms</module>
-        <module>SignalTesterUI</module>
     </modules>
     <build>
         <plugins>
