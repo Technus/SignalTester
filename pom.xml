@@ -35,6 +35,19 @@
                 <artifactId>maven-dependency-plugin</artifactId>
                 <executions>
                     <execution>
+                        <id>unpack-natives</id>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>unpack-dependencies</goal>
+                        </goals>
+                        <configuration>
+                            <includeArtifactIds>native</includeArtifactIds>
+                            <outputDirectory>
+                                ${project.build.directory}/
+                            </outputDirectory>
+                        </configuration>
+                    </execution>
+                    <execution>
                         <phase>compile</phase>
                         <goals>
                             <goal>copy-dependencies</goal>
