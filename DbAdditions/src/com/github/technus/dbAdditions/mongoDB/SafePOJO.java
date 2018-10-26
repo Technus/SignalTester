@@ -189,7 +189,7 @@ public class SafePOJO {
     //            .build();
     //}
 
-    public static  <TDocument> BsonDocument encode(TDocument object, Class<TDocument> clazz, CodecRegistry codecRegistry){
+    public static <TDocument> BsonDocument encode(TDocument object, Class<TDocument> clazz, CodecRegistry codecRegistry){
         BsonDocument result=new BsonDocument();
         codecRegistry.get(clazz).encode(new BsonDocumentWriter(result),object,EncoderContext.builder().build());
         return result;
