@@ -17,7 +17,7 @@
     </dependency>
       <dependency>
           <groupId>com.github.technus.signalTester</groupId>
-          <artifactId>signalTester</artifactId>
+          <artifactId>signalTesterCore</artifactId>
           <version>1.0-SNAPSHOT</version>
       </dependency>
   </dependencies>

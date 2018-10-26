@@ -31,11 +31,11 @@ public class FileSystemCollection<TDocument> implements MongoCollection<TDocumen
     public static final FileFilter FILE_FILTER = file -> file.isFile() && file.getPath().endsWith(EXTENSION);
 
     private final File serverFolder;
-    private final IContainer<File> collectionFolder;
+    private final IContainer<File> collectionFolderContainer;
 
     private final Indexes indexes;
 
-    private final IContainer<MongoNamespace> namespace;
+    private final IContainer<MongoNamespace> namespaceContainer;
     private final Class<TDocument> documentClass;
     private final CodecRegistry codecRegistry;
     private final WriteConcern writeConcern;
@@ -52,10 +52,10 @@ public class FileSystemCollection<TDocument> implements MongoCollection<TDocumen
                                  final boolean retryWrites) {
         try {
             this.serverFolder = notNull("serverFolder",serverFolder).getAbsoluteFile();
-            this.namespace = IContainer.DEFAULT_IMPLEMENTATION.newInstance();
-            this.namespace.accept(notNull("namespace", namespace));
-            this.collectionFolder = IContainer.DEFAULT_IMPLEMENTATION.newInstance();
-            this.collectionFolder.accept(new File(serverFolder.getAbsolutePath() + File.separator + namespace.getDatabaseName() + File.separator + namespace.getCollectionName()));
+            this.namespaceContainer = IContainer.DEFAULT_IMPLEMENTATION.newInstance();
+            this.namespaceContainer.accept(notNull("namespaceContainer", namespace));
+            this.collectionFolderContainer = IContainer.DEFAULT_IMPLEMENTATION.newInstance();
+            this.collectionFolderContainer.accept(new File(serverFolder.getAbsolutePath() + File.separator + namespace.getDatabaseName() + File.separator + namespace.getCollectionName()));
         }catch (InstantiationException|IllegalAccessException e){
             throw new RuntimeException(e);
         }
@@ -67,13 +67,13 @@ public class FileSystemCollection<TDocument> implements MongoCollection<TDocumen
         init();
     }
 
-    private FileSystemCollection(File serverFolder, IContainer<File> collectionFolder,
-                                 IContainer<MongoNamespace> namespace, Class<TDocument> documentClass,
+    private FileSystemCollection(File serverFolder, IContainer<File> collectionFolderContainer,
+                                 IContainer<MongoNamespace> namespaceContainer, Class<TDocument> documentClass,
                                  CodecRegistry codecRegistry, WriteConcern writeConcern, boolean retryWrites,
                                  Indexes indexes) {
         this.serverFolder = serverFolder;
-        this.collectionFolder = collectionFolder;
-        this.namespace = namespace;
+        this.collectionFolderContainer = collectionFolderContainer;
+        this.namespaceContainer = namespaceContainer;
         this.documentClass = documentClass;
         this.codecRegistry = codecRegistry;
         this.writeConcern = writeConcern;
@@ -83,7 +83,7 @@ public class FileSystemCollection<TDocument> implements MongoCollection<TDocumen
 
     private void init(){
         validateFolder(serverFolder);
-        validateFolder(collectionFolder.get());
+        validateFolder(collectionFolderContainer.get());
     }
 
     private void validateFolder(File folder){
@@ -112,12 +112,12 @@ public class FileSystemCollection<TDocument> implements MongoCollection<TDocumen
     }
 
     public File getCollectionFolder() {
-        return collectionFolder.get();
+        return collectionFolderContainer.get();
     }
 
     @Override
     public MongoNamespace getNamespace() {
-        return namespace.get();
+        return namespaceContainer.get();
     }
 
     @Override
@@ -147,12 +147,12 @@ public class FileSystemCollection<TDocument> implements MongoCollection<TDocumen
 
     @Override
     public <NewTDocument> MongoCollection<NewTDocument> withDocumentClass(final Class<NewTDocument> documentClass) {
-        return new FileSystemCollection<>(serverFolder,collectionFolder,namespace, documentClass, codecRegistry, writeConcern, retryWrites,indexes);
+        return new FileSystemCollection<>(serverFolder, collectionFolderContainer, namespaceContainer, documentClass, codecRegistry, writeConcern, retryWrites,indexes);
     }
 
     @Override
     public MongoCollection<TDocument> withCodecRegistry(final CodecRegistry codecRegistry) {
-        return new FileSystemCollection<>(serverFolder,collectionFolder,namespace, documentClass, codecRegistry, writeConcern, retryWrites,indexes);
+        return new FileSystemCollection<>(serverFolder, collectionFolderContainer, namespaceContainer, documentClass, codecRegistry, writeConcern, retryWrites,indexes);
     }
 
     @Override
@@ -162,7 +162,7 @@ public class FileSystemCollection<TDocument> implements MongoCollection<TDocumen
 
     @Override
     public MongoCollection<TDocument> withWriteConcern(final WriteConcern writeConcern) {
-        return new FileSystemCollection<>(serverFolder,collectionFolder,namespace, documentClass, codecRegistry, writeConcern, retryWrites,indexes);
+        return new FileSystemCollection<>(serverFolder, collectionFolderContainer, namespaceContainer, documentClass, codecRegistry, writeConcern, retryWrites,indexes);
     }
 
     @Override
@@ -171,12 +171,12 @@ public class FileSystemCollection<TDocument> implements MongoCollection<TDocumen
     }
 
     private boolean matches(File file, BsonDocument document,BsonDocument filter){
-
+        return false;
     }
 
     private ArrayList<String> filter(BsonDocument filter){
         ArrayList<String> list=new ArrayList<>();
-        File[] files=collectionFolder.get().listFiles(FILE_FILTER);
+        File[] files= collectionFolderContainer.get().listFiles(FILE_FILTER);
         if(files!=null){
             for(File file:files){
                 try {
@@ -265,7 +265,7 @@ public class FileSystemCollection<TDocument> implements MongoCollection<TDocumen
 
     @Override
     public long estimatedDocumentCount(EstimatedDocumentCountOptions options) {
-        File[] files=collectionFolder.get().listFiles(FILE_FILTER);
+        File[] files= collectionFolderContainer.get().listFiles(FILE_FILTER);
         return files==null?0:files.length;
     }
 
@@ -469,7 +469,7 @@ public class FileSystemCollection<TDocument> implements MongoCollection<TDocumen
                 throw new RuntimeException("_id must be a ObjectID or String that matches a valid filename");
         }
         try{
-            File docFile=new File(collectionFolder.get().getAbsolutePath()+File.separator+id+EXTENSION);
+            File docFile=new File(collectionFolderContainer.get().getAbsolutePath()+File.separator+id+EXTENSION);
             Files.write(docFile.toPath(),document.toString().getBytes());
             indexes.updateAllIndexes(docFile,document);
         }catch (IOException e){
@@ -677,7 +677,7 @@ public class FileSystemCollection<TDocument> implements MongoCollection<TDocumen
     @Override
     public void drop(ClientSession clientSession) {
         try {
-            Files.deleteIfExists(collectionFolder.get().toPath());
+            Files.deleteIfExists(collectionFolderContainer.get().toPath());
         }catch (IOException e){
             throw new IOError(e);
         }
@@ -803,7 +803,7 @@ public class FileSystemCollection<TDocument> implements MongoCollection<TDocumen
         indexes.clear();
     }
 
-    private class Index<K>{
+    private static class Index<K>{
         private final String name;
         private final Function<BsonDocument,K> keyGenerator;
         private final TreeMap<K,ArrayList<String>> indexMap;
@@ -821,20 +821,20 @@ public class FileSystemCollection<TDocument> implements MongoCollection<TDocumen
             fileMap.clear();
         }
 
-        private void buildIndex(){
-            clear();
-            File[] files=FileSystemCollection.this.collectionFolder.get().listFiles(FILE_FILTER);
-            if(files!=null) {
-                for (File file :files) {
-                    try{
-                        BsonDocument document = BsonDocument.parse(new String(Files.readAllBytes(file.toPath())));
-                        build(file,document);
-                    }catch (IOException e){
-                        throw new IOError(e);
-                    }
-                }
-            }
-        }
+        //private void buildIndex(){
+        //    clear();
+        //    File[] files=FileSystemCollection.this.collectionFolderContainer.get().listFiles(FILE_FILTER);
+        //    if(files!=null) {
+        //        for (File file :files) {
+        //            try{
+        //                BsonDocument document = BsonDocument.parse(new String(Files.readAllBytes(file.toPath())));
+        //                build(file,document);
+        //            }catch (IOException e){
+        //                throw new IOError(e);
+        //            }
+        //        }
+        //    }
+        //}
 
         private void build(File file,BsonDocument document){
             K key=keyGenerator.apply(document);
@@ -860,7 +860,7 @@ public class FileSystemCollection<TDocument> implements MongoCollection<TDocumen
         }
     }
 
-    private class Indexes {
+    private static class Indexes {
         private final HashMap<String,Index> indexMap =new HashMap<>();
 
         private void remove(String indexName){
@@ -875,9 +875,9 @@ public class FileSystemCollection<TDocument> implements MongoCollection<TDocumen
             indexMap.clear();
         }
 
-        private void buildAllIndexes(){
+        private void buildAllIndexes(File collectionFolder){
             indexMap.forEach((s, index) -> index.clear());
-            File[] files=FileSystemCollection.this.collectionFolder.get().listFiles(FILE_FILTER);
+            File[] files=collectionFolder.listFiles(FILE_FILTER);
             if(files!=null) {
                 for (File file :files) {
                     try {
@@ -915,9 +915,9 @@ public class FileSystemCollection<TDocument> implements MongoCollection<TDocumen
         File newCollectionFolder=new File(serverFolder.getAbsolutePath() + File.separator + newCollectionNamespace.getDatabaseName() + File.separator + newCollectionNamespace.getCollectionName());
         validateFolder(newCollectionFolder);
         try {
-            Files.move(collectionFolder.get().toPath(), newCollectionFolder.toPath());
-            namespace.accept(newCollectionNamespace);
-            collectionFolder.accept(newCollectionFolder);
+            Files.move(collectionFolderContainer.get().toPath(), newCollectionFolder.toPath());
+            namespaceContainer.accept(newCollectionNamespace);
+            collectionFolderContainer.accept(newCollectionFolder);
         }catch (IOException e){
             throw new IOError(e);
         }
