@@ -9,9 +9,12 @@ import com.mongodb.client.model.*;
 import com.mongodb.client.result.DeleteResult;
 import com.mongodb.client.result.UpdateResult;
 import org.bson.*;
+import org.bson.codecs.Codec;
+import org.bson.codecs.DecoderContext;
 import org.bson.codecs.EncoderContext;
 import org.bson.codecs.configuration.CodecRegistry;
 import org.bson.conversions.Bson;
+import org.bson.json.JsonWriterSettings;
 import org.bson.types.ObjectId;
 
 import java.io.File;
@@ -21,10 +24,13 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.time.Instant;
 import java.util.*;
+import java.util.concurrent.TimeUnit;
+import java.util.function.Consumer;
 import java.util.function.Function;
 
 import static com.mongodb.assertions.Assertions.notNull;
 import static com.mongodb.client.model.ReplaceOptions.createReplaceOptions;
+import static org.bson.BsonType.UNDEFINED;
 
 public class FileSystemCollection<TDocument> implements MongoCollection<TDocument> {
     public static final String EXTENSION =".json";
@@ -84,6 +90,7 @@ public class FileSystemCollection<TDocument> implements MongoCollection<TDocumen
     private void init(){
         validateFolder(serverFolder);
         validateFolder(collectionFolderContainer.get());
+        indexes.buildAllIndexes(collectionFolderContainer.get());
     }
 
     private void validateFolder(File folder){
@@ -170,28 +177,6 @@ public class FileSystemCollection<TDocument> implements MongoCollection<TDocumen
         return this;
     }
 
-    private boolean matches(File file, BsonDocument document,BsonDocument filter){
-        return false;
-    }
-
-    private ArrayList<String> filter(BsonDocument filter){
-        ArrayList<String> list=new ArrayList<>();
-        File[] files= collectionFolderContainer.get().listFiles(FILE_FILTER);
-        if(files!=null){
-            for(File file:files){
-                try {
-                    BsonDocument document = BsonDocument.parse(new String(Files.readAllBytes(file.toPath())));
-                    if(matches(file,document,filter)){
-                        list.add(file.getName());
-                    }
-                }catch (IOException e){
-                    throw new IOError(e);
-                }
-            }
-        }
-        return list;
-    }
-
     @Override
     @Deprecated
     public long count() {
@@ -265,7 +250,7 @@ public class FileSystemCollection<TDocument> implements MongoCollection<TDocumen
 
     @Override
     public long estimatedDocumentCount(EstimatedDocumentCountOptions options) {
-        File[] files= collectionFolderContainer.get().listFiles(FILE_FILTER);
+        File[] files=collectionFolderContainer.get().listFiles(FILE_FILTER);
         return files==null?0:files.length;
     }
 
@@ -287,6 +272,10 @@ public class FileSystemCollection<TDocument> implements MongoCollection<TDocumen
     @Override
     public <TResult> DistinctIterable<TResult> distinct(ClientSession clientSession, String fieldName, Bson filter, Class<TResult> tResultClass) {
         throw new NoSuchMethodError();
+    }
+
+    private List<String> lookupFileNamesById(String id){
+        return indexes.get("_id",String.class).lookupFileNames(id);
     }
 
     @Override
@@ -326,7 +315,211 @@ public class FileSystemCollection<TDocument> implements MongoCollection<TDocumen
 
     @Override
     public <TResult> FindIterable<TResult> find(ClientSession clientSession, Bson filter, Class<TResult> tResultClass) {
-        throw new NoSuchMethodError();
+        BsonValue value=null;
+        if (filter != null) {
+            BsonDocument document=filter.toBsonDocument(Document.class,codecRegistry);
+            value=document.get("_id");
+        }
+        String idQuery;
+        switch (value==null?UNDEFINED:value.getBsonType()){
+            case STRING:
+                idQuery=value.asString().getValue();
+                break;
+            case OBJECT_ID:
+                idQuery=value.asObjectId().getValue().toHexString();
+                break;
+            case NULL: case UNDEFINED: default:
+                idQuery=null;
+        }
+        List<TResult> list=new ArrayList<>();
+        for(String fileName: lookupFileNamesById(idQuery)){
+            try {
+                File file=new File(collectionFolderContainer.get().getAbsolutePath()+File.separator+fileName);
+                BsonDocument fileDocument = BsonDocument.parse(new String(Files.readAllBytes(file.toPath())));
+                TResult object=codecRegistry.get(tResultClass).decode(new BsonDocumentReader(fileDocument), DecoderContext.builder().checkedDiscriminator(false).build());
+                //todo check if gets correctly, SHOULD :)
+                list.add(object);
+            }catch (IOException e){
+                throw new IOError(e);
+            }
+        }
+        return new SimpleFindIterable<TResult>() {
+            @Override
+            public MongoCursor<TResult> iterator() {
+                return new MongoCursor<TResult>() {
+                    int position=0;
+
+                    @Override
+                    public void close() {
+                        position=list.size();
+                    }
+
+                    @Override
+                    public boolean hasNext() {
+                        return position<list.size();
+                    }
+
+                    @Override
+                    public TResult next() {
+                        return list.get(position++);
+                    }
+
+                    @Override
+                    public TResult tryNext() {
+                        try{
+                            return next();
+                        }catch (IndexOutOfBoundsException e){
+                            return null;
+                        }
+                    }
+
+                    @Override
+                    public ServerCursor getServerCursor() {
+                        return null;
+                    }
+
+                    @Override
+                    public ServerAddress getServerAddress() {
+                        return null;
+                    }
+                };
+            }
+
+            @Override
+            public TResult first() {
+                return list.get(0);
+            }
+
+            @Override
+            public <U> MongoIterable<U> map(com.mongodb.Function<TResult, U> mapper) {
+                return null;
+            }
+
+            @Override
+            public void forEach(Block<? super TResult> block) {
+                list.forEach(block::apply);
+            }
+
+            @Override
+            public <A extends Collection<? super TResult>> A into(A target) {
+                return null;
+            }
+        };
+    }
+    
+    private interface SimpleFindIterable<TResult> extends FindIterable<TResult>{
+        @Override
+        default FindIterable<TResult> filter(Bson filter) {
+            return this;
+        }
+
+        @Override
+        default FindIterable<TResult> limit(int limit) {
+            return this;
+        }
+
+        @Override
+        default FindIterable<TResult> skip(int skip) {
+            return this;
+        }
+
+        @Override
+        default FindIterable<TResult> maxTime(long maxTime, TimeUnit timeUnit) {
+            return this;
+        }
+
+        @Override
+        default FindIterable<TResult> maxAwaitTime(long maxAwaitTime, TimeUnit timeUnit) {
+            return this;
+        }
+
+        @Override
+        @Deprecated
+        default FindIterable<TResult> modifiers(Bson modifiers) {
+            return this;
+        }
+
+        @Override
+        default FindIterable<TResult> projection(Bson projection) {
+            return this;
+        }
+
+        @Override
+        default FindIterable<TResult> sort(Bson sort) {
+            return this;
+        }
+
+        @Override
+        default FindIterable<TResult> noCursorTimeout(boolean noCursorTimeout) {
+            return this;
+        }
+
+        @Override
+        default FindIterable<TResult> oplogReplay(boolean oplogReplay) {
+            return this;
+        }
+
+        @Override
+        default FindIterable<TResult> partial(boolean partial) {
+            return this;
+        }
+
+        @Override
+        default FindIterable<TResult> cursorType(CursorType cursorType) {
+            return this;
+        }
+
+        @Override
+        default FindIterable<TResult> batchSize(int batchSize) {
+            return this;
+        }
+
+        @Override
+        default FindIterable<TResult> collation(Collation collation) {
+            return this;
+        }
+
+        @Override
+        default FindIterable<TResult> comment(String comment) {
+            return this;
+        }
+
+        @Override
+        default FindIterable<TResult> hint(Bson hint) {
+            return this;
+        }
+
+        @Override
+        default FindIterable<TResult> max(Bson max) {
+            return this;
+        }
+
+        @Override
+        default FindIterable<TResult> min(Bson min) {
+            return this;
+        }
+
+        @Override
+        @Deprecated
+        default FindIterable<TResult> maxScan(long maxScan) {
+            return this;
+        }
+
+        @Override
+        default FindIterable<TResult> returnKey(boolean returnKey) {
+            return this;
+        }
+
+        @Override
+        default FindIterable<TResult> showRecordId(boolean showRecordId) {
+            return this;
+        }
+
+        @Override
+        @Deprecated
+        default FindIterable<TResult> snapshot(boolean snapshot) {
+            return this;
+        }
     }
 
     @Override
@@ -445,32 +638,40 @@ public class FileSystemCollection<TDocument> implements MongoCollection<TDocumen
     }
 
     @Override
+    @SuppressWarnings("unchecked")
     public void insertOne(ClientSession clientSession, TDocument t, InsertOneOptions options) {
         BsonDocumentWriter bsonWriter=new BsonDocumentWriter(new BsonDocument());
-        codecRegistry.get(documentClass).encode(bsonWriter,t, EncoderContext.builder().isEncodingCollectibleDocument(true).build());
-                    //todo check if gets codec correctly!
+        Codec codec=codecRegistry.get(t.getClass());
+        if(codec==null){
+            codec=codecRegistry.get(documentClass);//get default codec
+        }
+        codec.encode(bsonWriter, t, EncoderContext.builder().isEncodingCollectibleDocument(true).build());
         bsonWriter.flush();
         BsonDocument document=bsonWriter.getDocument();
         BsonValue bsonValue=document.get("_id");
-        String id=null;
-        switch (bsonValue.getBsonType()){
+        File docFile;
+        switch (bsonValue==null?UNDEFINED:bsonValue.getBsonType()){
             case STRING:
-                id=bsonValue.asString().getValue();
+                docFile=new File(collectionFolderContainer.get().getAbsolutePath()+File.separator+
+                        bsonValue.asString().getValue()+EXTENSION);
                 break;
             case OBJECT_ID:
-                id=bsonValue.asObjectId().getValue().toHexString();
+                docFile=new File(collectionFolderContainer.get().getAbsolutePath()+File.separator+
+                        bsonValue.asObjectId().getValue().toHexString()+EXTENSION);
                 break;
             case NULL: case UNDEFINED:
-                ObjectId objectId=new ObjectId(Date.from(Instant.now()));
-                id=objectId.toHexString();
-                document.put("_id",new BsonObjectId(objectId));
+                do {
+                    ObjectId objectId = new ObjectId(Date.from(Instant.now()));
+                    docFile=new File(collectionFolderContainer.get().getAbsolutePath()+File.separator+
+                            objectId.toHexString()+EXTENSION);
+                    document.put("_id",new BsonObjectId(objectId));
+                }while(docFile.exists());
                 break;
             default:
                 throw new RuntimeException("_id must be a ObjectID or String that matches a valid filename");
         }
         try{
-            File docFile=new File(collectionFolderContainer.get().getAbsolutePath()+File.separator+id+EXTENSION);
-            Files.write(docFile.toPath(),document.toString().getBytes());
+            Files.write(docFile.toPath(),document.toJson(JsonWriterSettings.builder().indent(true).build()).getBytes());
             indexes.updateAllIndexes(docFile,document);
         }catch (IOException e){
             throw new IOError(e);
@@ -494,7 +695,7 @@ public class FileSystemCollection<TDocument> implements MongoCollection<TDocumen
 
     @Override
     public void insertMany(ClientSession clientSession, List<? extends TDocument> ts, InsertManyOptions options) {
-        throw new NoSuchMethodError();
+        ts.forEach((Consumer<TDocument>) this::insertOne);
     }
 
     @Override
@@ -517,6 +718,15 @@ public class FileSystemCollection<TDocument> implements MongoCollection<TDocumen
         throw new NoSuchMethodError();
     }
 
+    public void deleteOne(String filename){
+        try{
+            File file=new File(collectionFolderContainer.get().getAbsolutePath()+File.separator+filename);
+            Files.delete(file.toPath());
+        }catch (IOException e){
+            throw new IOError(e);
+        }
+    }
+
     @Override
     public DeleteResult deleteMany(Bson filter) {
         return deleteMany(null,filter,new DeleteOptions());
@@ -535,6 +745,12 @@ public class FileSystemCollection<TDocument> implements MongoCollection<TDocumen
     @Override
     public DeleteResult deleteMany(ClientSession clientSession, Bson filter, DeleteOptions options) {
         throw new NoSuchMethodError();
+    }
+
+    public void deleteMany(String... fileNames){
+        for (String fileName : fileNames) {
+            deleteOne(fileName);
+        }
     }
 
     @Override
@@ -601,7 +817,7 @@ public class FileSystemCollection<TDocument> implements MongoCollection<TDocumen
 
     @Override
     public UpdateResult updateMany(ClientSession clientSession, Bson filter, Bson update) {
-        return updateMany(clientSession,filter,update);
+        return updateMany(clientSession,filter,update,new UpdateOptions());
     }
 
     @Override
@@ -661,7 +877,7 @@ public class FileSystemCollection<TDocument> implements MongoCollection<TDocumen
 
     @Override
     public TDocument findOneAndUpdate(ClientSession clientSession, Bson filter, Bson update) {
-        return findOneAndUpdate(clientSession,filter,update);
+        return findOneAndUpdate(clientSession,filter,update,new FindOneAndUpdateOptions());
     }
 
     @Override
@@ -836,6 +1052,18 @@ public class FileSystemCollection<TDocument> implements MongoCollection<TDocumen
         //    }
         //}
 
+        private List<String> lookupFileNames(K key){
+            if(key==null){
+                return new ArrayList<>(fileMap.keySet());
+            }
+            ArrayList<String> fileNames=indexMap.get(key);
+            return fileNames==null?new ArrayList<>():new ArrayList<>(fileNames);
+        }
+
+        private K reverseLookup(String fileName){
+            return fileMap.get(fileName);
+        }
+
         private void build(File file,BsonDocument document){
             K key=keyGenerator.apply(document);
             ArrayList<String> files = indexMap.computeIfAbsent(key, k -> new ArrayList<>());
@@ -863,12 +1091,31 @@ public class FileSystemCollection<TDocument> implements MongoCollection<TDocumen
     private static class Indexes {
         private final HashMap<String,Index> indexMap =new HashMap<>();
 
+        private Indexes(){
+            put(new Index<String>("_id", Comparator.naturalOrder(), document -> {
+                BsonValue value=document.get("_id");
+                switch (value==null?UNDEFINED:value.getBsonType()){
+                    case STRING:
+                        return value.asString().getValue();
+                    case OBJECT_ID:
+                        return value.asObjectId().getValue().toHexString();
+                    case NULL: case UNDEFINED: default:
+                        throw new RuntimeException("_id must be a ObjectID or String that matches a valid filename");
+                }
+            }));
+        }
+
         private void remove(String indexName){
             indexMap.remove(indexName);
         }
 
         private void put(Index index){
             indexMap.put(index.name,index);
+        }
+
+        @SuppressWarnings("unchecked")
+        private <K> Index<K> get(String indexName,Class<K> clazz){
+            return indexMap.get(indexName);
         }
 
         private void clear(){
@@ -912,6 +1159,7 @@ public class FileSystemCollection<TDocument> implements MongoCollection<TDocumen
 
     @Override
     public void renameCollection(ClientSession clientSession, MongoNamespace newCollectionNamespace, RenameCollectionOptions renameCollectionOptions) {
+        notNull("newCollectionNamespace",newCollectionNamespace);
         File newCollectionFolder=new File(serverFolder.getAbsolutePath() + File.separator + newCollectionNamespace.getDatabaseName() + File.separator + newCollectionNamespace.getCollectionName());
         validateFolder(newCollectionFolder);
         try {

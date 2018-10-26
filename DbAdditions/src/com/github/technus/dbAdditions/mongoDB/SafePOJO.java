@@ -191,11 +191,11 @@ public class SafePOJO {
 
     public static <TDocument> BsonDocument encode(TDocument object, Class<TDocument> clazz, CodecRegistry codecRegistry){
         BsonDocument result=new BsonDocument();
-        codecRegistry.get(clazz).encode(new BsonDocumentWriter(result),object,EncoderContext.builder().build());
+        codecRegistry.get(clazz).encode(new BsonDocumentWriter(result),object,EncoderContext.builder().isEncodingCollectibleDocument(false).build());
         return result;
     }
 
     public static <TDocument> TDocument decode(BsonDocument bson, Class<TDocument> clazz, CodecRegistry codecRegistry){
-        return codecRegistry.get(clazz).decode(new BsonDocumentReader(bson),DecoderContext.builder().build());
+        return codecRegistry.get(clazz).decode(new BsonDocumentReader(bson),DecoderContext.builder().checkedDiscriminator(true).build());
     }
 }

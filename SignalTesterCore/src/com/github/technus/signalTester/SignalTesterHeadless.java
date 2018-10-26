@@ -2,7 +2,9 @@ package com.github.technus.signalTester;
 
 import com.github.technus.dbAdditions.mongoDB.MongoClientHandler;
 import com.github.technus.dbAdditions.mongoDB.SafePOJO;
+import com.github.technus.dbAdditions.mongoDB.fsBackend.FileSystemCollection;
 import com.github.technus.dbAdditions.mongoDB.pojo.ThrowableLog;
+import com.mongodb.MongoNamespace;
 import com.mongodb.MongoTimeoutException;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
@@ -11,6 +13,7 @@ import org.bson.Document;
 import org.bson.codecs.configuration.CodecRegistry;
 import org.bson.types.ObjectId;
 
+import java.io.File;
 import java.net.InetAddress;
 import java.util.Locale;
 import java.util.function.Consumer;
@@ -19,11 +22,13 @@ import static com.github.technus.dbAdditions.mongoDB.pojo.ThrowableLog.THROWABLE
 
 public class SignalTesterHeadless implements AutoCloseable{
     private final MongoClientHandler localClient, remoteClient;
-    private final MongoCollection<ThrowableLog> throwableLogCollectionLocal,throwableLogCollectionRemote;
-    private final MongoCollection<Configuration> configurationCollectionLocal,configurationCollectionRemote;
+    private MongoCollection<ThrowableLog> throwableLogCollectionLocal;
+    private MongoCollection<ThrowableLog> throwableLogCollectionRemote;
+    private MongoCollection<Configuration> configurationCollectionLocal;
+    private MongoCollection<Configuration> configurationCollectionRemote;
     private Consumer<Throwable> throwableConsumer;
 
-    public SignalTesterHeadless() {
+    public SignalTesterHeadless(String... args) {
         ThrowableLog.currentApplicationName ="SignalTester";
 
         throwableConsumer = throwable -> {
@@ -62,7 +67,7 @@ public class SignalTesterHeadless implements AutoCloseable{
                         getThrowableLogCollectionRemote().insertOne(log);
                         getThrowableLogCollectionLocal().deleteOne(new Document().append("_id",id));
                     }catch (Exception e){
-
+                        //todo ?
                         return;
                     }
                 }
@@ -71,25 +76,46 @@ public class SignalTesterHeadless implements AutoCloseable{
         MongoDatabase localDatabase = localClient.getDatabase();
         MongoDatabase remoteDatabase = remoteClient.getDatabase();
 
+        MongoCollection<ThrowableLog> throwableLogCollectionFileSystem = new FileSystemCollection<>(new File("."),
+                new MongoNamespace("tecAppsLocal", ThrowableLog.class.getSimpleName()), ThrowableLog.class)
+                .withCodecRegistry(THROWABLE_LOG_COLLECTION_CODECS);
+
+        MongoCollection<Configuration> configurationCollectionFileSystem = new FileSystemCollection<>(new File("."),
+                new MongoNamespace("tecAppsLocal", Configuration.class.getSimpleName()), Configuration.class)
+                .withCodecRegistry(configurationCollectionCodecs);
+
+        throwableLogCollectionLocal= localDatabase.getCollection(ThrowableLog.class.getSimpleName(),ThrowableLog.class)
+                .withCodecRegistry(THROWABLE_LOG_COLLECTION_CODECS);
+
+        configurationCollectionLocal= localDatabase.getCollection(Configuration.class.getSimpleName(),Configuration.class)
+                .withCodecRegistry(configurationCollectionCodecs);
+
         try {
             localDatabase.runCommand(new Document().append("ping", ""));
+            for(ThrowableLog log: throwableLogCollectionFileSystem.find()){
+                throwableLogCollectionLocal.insertOne(log);
+            }
+            throwableLogCollectionFileSystem =null;
+            for(Configuration configuration: configurationCollectionFileSystem.find()){
+                configurationCollectionLocal.insertOne(configuration);
+            }
+            configurationCollectionFileSystem =null;
         }catch (MongoTimeoutException e){
             logError(e);
+            throwableLogCollectionLocal= throwableLogCollectionFileSystem;
+            configurationCollectionLocal= configurationCollectionFileSystem;
         }
+
         try {
             remoteDatabase.runCommand(new Document().append("ping", ""));
         }catch (MongoTimeoutException e){
             logError(e);
+        }finally{
+            throwableLogCollectionRemote= remoteDatabase.getCollection(ThrowableLog.class.getSimpleName(),ThrowableLog.class)
+                    .withCodecRegistry(THROWABLE_LOG_COLLECTION_CODECS);
+            configurationCollectionRemote= remoteDatabase.getCollection(Configuration.class.getSimpleName(),Configuration.class)
+                    .withCodecRegistry(configurationCollectionCodecs);
         }
-
-        throwableLogCollectionLocal= localDatabase.getCollection(ThrowableLog.class.getSimpleName(),ThrowableLog.class)
-                .withCodecRegistry(THROWABLE_LOG_COLLECTION_CODECS);
-        throwableLogCollectionRemote= remoteDatabase.getCollection(ThrowableLog.class.getSimpleName(),ThrowableLog.class)
-                .withCodecRegistry(THROWABLE_LOG_COLLECTION_CODECS);
-        configurationCollectionLocal= localDatabase.getCollection(Configuration.class.getSimpleName(),Configuration.class)
-                .withCodecRegistry(configurationCollectionCodecs);
-        configurationCollectionRemote= remoteDatabase.getCollection(Configuration.class.getSimpleName(),Configuration.class)
-                .withCodecRegistry(configurationCollectionCodecs);
     }
 
     @Override
@@ -147,7 +173,7 @@ public class SignalTesterHeadless implements AutoCloseable{
     public static void main(String... args) {
         Locale.setDefault(Locale.US);
         try{
-            new SignalTesterHeadless();
+            new SignalTesterHeadless(args);
         }catch (Throwable t){
             t.printStackTrace();
             System.exit(1);

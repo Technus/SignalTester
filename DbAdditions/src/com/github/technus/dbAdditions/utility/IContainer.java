@@ -4,5 +4,5 @@ import java.util.function.Consumer;
 import java.util.function.Supplier;
 
 public interface IContainer<T> extends Supplier<T>, Consumer<T> {
-     Class<? extends IContainer> DEFAULT_IMPLEMENTATION = Container.class;
+     Class<? extends IContainer> DEFAULT_IMPLEMENTATION = ContainerImpl.class;
 }

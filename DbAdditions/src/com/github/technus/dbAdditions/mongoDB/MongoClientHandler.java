@@ -56,9 +56,11 @@ public class MongoClientHandler implements AutoCloseable{
                 .serverSelectionTimeout(2500).socketTimeout(2500).connectTimeout(2500)
                 .heartbeatConnectTimeout(2500).heartbeatSocketTimeout(2500).heartbeatFrequency(1000).build();
 
-        if(user==null || authenticationDatabase==null || password==null){
+        if(user==null || password==null){
             client=new MongoClient(serverAddress, clientOpt);
-        }else {
+        }else if(authenticationDatabase==null) {
+            client=new MongoClient(serverAddress, MongoCredential.createScramSha1Credential(user, database, password.toCharArray()), clientOpt);
+        }else{
             client=new MongoClient(serverAddress, MongoCredential.createScramSha1Credential(user, authenticationDatabase, password.toCharArray()), clientOpt);
         }
 

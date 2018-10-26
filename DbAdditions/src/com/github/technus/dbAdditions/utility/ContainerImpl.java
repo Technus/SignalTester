@@ -1,6 +1,6 @@
 package com.github.technus.dbAdditions.utility;
 
-public class Container<T> implements IContainer<T> {
+public class ContainerImpl<T> implements IContainer<T> {
     private T t;
 
     @Override
