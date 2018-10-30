@@ -33,8 +33,8 @@ import static com.mongodb.client.model.ReplaceOptions.createReplaceOptions;
 import static org.bson.BsonType.UNDEFINED;
 
 public class FileSystemCollection<TDocument> implements MongoCollection<TDocument> {
-    public static final String EXTENSION =".json";
-    public static final FileFilter FILE_FILTER = file -> file.isFile() && file.getPath().endsWith(EXTENSION);
+    public static final String EXTENSION ="json";
+    public static final FileFilter FILE_FILTER = file -> file.isFile() && file.getPath().endsWith('.'+EXTENSION);
 
     private final File serverFolder;
     private final IContainer<File> collectionFolderContainer;
@@ -45,17 +45,15 @@ public class FileSystemCollection<TDocument> implements MongoCollection<TDocumen
     private final Class<TDocument> documentClass;
     private final CodecRegistry codecRegistry;
     private final WriteConcern writeConcern;
-    private final boolean retryWrites;
 
 
     public FileSystemCollection(final File serverFolder, final MongoNamespace namespace, final Class<TDocument> documentClass) {
-        this(serverFolder,namespace,documentClass, MongoClient.getDefaultCodecRegistry(),WriteConcern.ACKNOWLEDGED,true);
+        this(serverFolder,namespace,documentClass, MongoClient.getDefaultCodecRegistry(),WriteConcern.ACKNOWLEDGED);
     }
 
     @SuppressWarnings("unchecked")
     public FileSystemCollection(final File serverFolder, final MongoNamespace namespace, final Class<TDocument> documentClass,
-                                 final CodecRegistry codecRegistry, final WriteConcern writeConcern,
-                                 final boolean retryWrites) {
+                                 final CodecRegistry codecRegistry, final WriteConcern writeConcern) {
         try {
             this.serverFolder = notNull("serverFolder",serverFolder).getAbsoluteFile();
             this.namespaceContainer = IContainer.DEFAULT_IMPLEMENTATION.newInstance();
@@ -68,22 +66,19 @@ public class FileSystemCollection<TDocument> implements MongoCollection<TDocumen
         this.documentClass = notNull("documentClass", documentClass);
         this.codecRegistry = notNull("codecRegistry", codecRegistry);
         this.writeConcern = notNull("writeConcern", writeConcern);
-        this.retryWrites = retryWrites;
         this.indexes=new Indexes();
         init();
     }
 
     private FileSystemCollection(File serverFolder, IContainer<File> collectionFolderContainer,
                                  IContainer<MongoNamespace> namespaceContainer, Class<TDocument> documentClass,
-                                 CodecRegistry codecRegistry, WriteConcern writeConcern, boolean retryWrites,
-                                 Indexes indexes) {
+                                 CodecRegistry codecRegistry, WriteConcern writeConcern, Indexes indexes) {
         this.serverFolder = serverFolder;
         this.collectionFolderContainer = collectionFolderContainer;
         this.namespaceContainer = namespaceContainer;
         this.documentClass = documentClass;
         this.codecRegistry = codecRegistry;
         this.writeConcern = writeConcern;
-        this.retryWrites = retryWrites;
         this.indexes=indexes;
     }
 
@@ -154,12 +149,12 @@ public class FileSystemCollection<TDocument> implements MongoCollection<TDocumen
 
     @Override
     public <NewTDocument> MongoCollection<NewTDocument> withDocumentClass(final Class<NewTDocument> documentClass) {
-        return new FileSystemCollection<>(serverFolder, collectionFolderContainer, namespaceContainer, documentClass, codecRegistry, writeConcern, retryWrites,indexes);
+        return new FileSystemCollection<>(serverFolder, collectionFolderContainer, namespaceContainer, documentClass, codecRegistry, writeConcern, indexes);
     }
 
     @Override
     public MongoCollection<TDocument> withCodecRegistry(final CodecRegistry codecRegistry) {
-        return new FileSystemCollection<>(serverFolder, collectionFolderContainer, namespaceContainer, documentClass, codecRegistry, writeConcern, retryWrites,indexes);
+        return new FileSystemCollection<>(serverFolder, collectionFolderContainer, namespaceContainer, documentClass, codecRegistry, writeConcern, indexes);
     }
 
     @Override
@@ -169,7 +164,7 @@ public class FileSystemCollection<TDocument> implements MongoCollection<TDocumen
 
     @Override
     public MongoCollection<TDocument> withWriteConcern(final WriteConcern writeConcern) {
-        return new FileSystemCollection<>(serverFolder, collectionFolderContainer, namespaceContainer, documentClass, codecRegistry, writeConcern, retryWrites,indexes);
+        return new FileSystemCollection<>(serverFolder, collectionFolderContainer, namespaceContainer, documentClass, codecRegistry, writeConcern, indexes);
     }
 
     @Override
@@ -274,10 +269,6 @@ public class FileSystemCollection<TDocument> implements MongoCollection<TDocumen
         throw new NoSuchMethodError();
     }
 
-    private List<String> lookupFileNamesById(String id){
-        return indexes.get("_id",String.class).lookupFileNames(id);
-    }
-
     @Override
     public FindIterable<TDocument> find() {
         return find(null,new BsonDocument(),documentClass);
@@ -337,7 +328,6 @@ public class FileSystemCollection<TDocument> implements MongoCollection<TDocumen
                 File file=new File(collectionFolderContainer.get().getAbsolutePath()+File.separator+fileName);
                 BsonDocument fileDocument = BsonDocument.parse(new String(Files.readAllBytes(file.toPath())));
                 TResult object=codecRegistry.get(tResultClass).decode(new BsonDocumentReader(fileDocument), DecoderContext.builder().checkedDiscriminator(false).build());
-                //todo check if gets correctly, SHOULD :)
                 list.add(object);
             }catch (IOException e){
                 throw new IOError(e);
@@ -347,7 +337,7 @@ public class FileSystemCollection<TDocument> implements MongoCollection<TDocumen
             @Override
             public MongoCursor<TResult> iterator() {
                 return new MongoCursor<TResult>() {
-                    int position=0;
+                    private int position=0;
 
                     @Override
                     public void close() {
@@ -653,17 +643,17 @@ public class FileSystemCollection<TDocument> implements MongoCollection<TDocumen
         switch (bsonValue==null?UNDEFINED:bsonValue.getBsonType()){
             case STRING:
                 docFile=new File(collectionFolderContainer.get().getAbsolutePath()+File.separator+
-                        bsonValue.asString().getValue()+EXTENSION);
+                        bsonValue.asString().getValue()+'.'+EXTENSION);
                 break;
             case OBJECT_ID:
                 docFile=new File(collectionFolderContainer.get().getAbsolutePath()+File.separator+
-                        bsonValue.asObjectId().getValue().toHexString()+EXTENSION);
+                        bsonValue.asObjectId().getValue().toHexString()+'.'+EXTENSION);
                 break;
             case NULL: case UNDEFINED:
                 do {
                     ObjectId objectId = new ObjectId(Date.from(Instant.now()));
                     docFile=new File(collectionFolderContainer.get().getAbsolutePath()+File.separator+
-                            objectId.toHexString()+EXTENSION);
+                            objectId.toHexString()+'.'+EXTENSION);
                     document.put("_id",new BsonObjectId(objectId));
                 }while(docFile.exists());
                 break;
@@ -715,13 +705,42 @@ public class FileSystemCollection<TDocument> implements MongoCollection<TDocumen
 
     @Override
     public DeleteResult deleteOne(ClientSession clientSession, Bson filter, DeleteOptions options) {
-        throw new NoSuchMethodError();
+        BsonValue value=null;
+        if (filter != null) {
+            BsonDocument document=filter.toBsonDocument(Document.class,codecRegistry);
+            value=document.get("_id");
+        }
+        String idQuery;
+        switch (value==null?UNDEFINED:value.getBsonType()){
+            case STRING:
+                idQuery=value.asString().getValue();
+                break;
+            case OBJECT_ID:
+                idQuery=value.asObjectId().getValue().toHexString();
+                break;
+            case NULL: case UNDEFINED: default:
+                idQuery=null;
+        }
+        int deletedCount=0;
+        for(String fileName: lookupFileNamesById(idQuery)){
+            try {
+                File docFile=new File(collectionFolderContainer.get().getAbsolutePath()+File.separator+fileName);
+                Files.delete(docFile.toPath());
+                indexes.updateAllIndexes(docFile,null);
+                deletedCount++;
+                break;
+            }catch (IOException e){
+                throw new IOError(e);
+            }
+        }
+        return DeleteResult.acknowledged(deletedCount);
     }
 
     public void deleteOne(String filename){
         try{
-            File file=new File(collectionFolderContainer.get().getAbsolutePath()+File.separator+filename);
-            Files.delete(file.toPath());
+            File docFile=new File(collectionFolderContainer.get().getAbsolutePath()+File.separator+filename);
+            Files.delete(docFile.toPath());
+            indexes.updateAllIndexes(docFile,null);
         }catch (IOException e){
             throw new IOError(e);
         }
@@ -744,7 +763,34 @@ public class FileSystemCollection<TDocument> implements MongoCollection<TDocumen
 
     @Override
     public DeleteResult deleteMany(ClientSession clientSession, Bson filter, DeleteOptions options) {
-        throw new NoSuchMethodError();
+        BsonValue value=null;
+        if (filter != null) {
+            BsonDocument document=filter.toBsonDocument(Document.class,codecRegistry);
+            value=document.get("_id");
+        }
+        String idQuery;
+        switch (value==null?UNDEFINED:value.getBsonType()){
+            case STRING:
+                idQuery=value.asString().getValue();
+                break;
+            case OBJECT_ID:
+                idQuery=value.asObjectId().getValue().toHexString();
+                break;
+            case NULL: case UNDEFINED: default:
+                idQuery=null;
+        }
+        int deletedCount=0;
+        for(String fileName: lookupFileNamesById(idQuery)){
+            try {
+                File docFile=new File(collectionFolderContainer.get().getAbsolutePath()+File.separator+fileName);
+                Files.delete(docFile.toPath());
+                deletedCount++;
+                indexes.updateAllIndexes(docFile,null);
+            }catch (IOException e){
+                throw new IOError(e);
+            }
+        }
+        return DeleteResult.acknowledged(deletedCount);
     }
 
     public void deleteMany(String... fileNames){
@@ -1019,13 +1065,13 @@ public class FileSystemCollection<TDocument> implements MongoCollection<TDocumen
         indexes.clear();
     }
 
-    private static class Index<K>{
+    public static class Index<K>{
         private final String name;
         private final Function<BsonDocument,K> keyGenerator;
         private final TreeMap<K,ArrayList<String>> indexMap;
         private final HashMap<String,K> fileMap;
 
-        private Index(String name, Comparator<K> comparator, Function<BsonDocument,K> keyGenerator) {
+        public Index(String name, Comparator<K> comparator, Function<BsonDocument,K> keyGenerator) {
             this.name = notNull("name",name);
             this.indexMap = new TreeMap<>(notNull("comparator",comparator));
             this.keyGenerator = notNull("keyGenerator",keyGenerator);
@@ -1140,6 +1186,10 @@ public class FileSystemCollection<TDocument> implements MongoCollection<TDocumen
         private void updateAllIndexes(File file,BsonDocument document){
             indexMap.forEach((s, index) -> index.update(file,document));
         }
+    }
+
+    private List<String> lookupFileNamesById(String id){
+        return indexes.get("_id",String.class).lookupFileNames(id);
     }
 
     @Override

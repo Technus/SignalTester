@@ -5,3 +5,6 @@ out/
 DbAdditions/target/
 SignalTesterUI/target/
 target/
+defaultInitializer.json
+tecAppsLocal/
+tecAppsRemote/

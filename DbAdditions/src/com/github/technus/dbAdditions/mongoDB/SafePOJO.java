@@ -20,7 +20,25 @@ public class SafePOJO {
     public static List<Convention> CONVENTIONS = Arrays.asList(Conventions.CLASS_AND_PROPERTY_CONVENTION, Conventions.ANNOTATION_CONVENTION, RemovalConvention.INSTANCE);
 
     private SafePOJO(){
-        MongoClient.getDefaultCodecRegistry();
+
+    }
+
+    @SuppressWarnings("unchecked")
+    public static <T> CodecRegistry buildCodecRegistryWithOtherClasses(Class<T> collectionType, Class<? extends T> defaultType, Class... additionalDiscriminatedTypes){
+        List<Class<? extends T>> tList=new ArrayList<>();
+        List<Class> cList=new ArrayList<>();
+        if(additionalDiscriminatedTypes!=null) {
+            for (Class clazz : additionalDiscriminatedTypes) {
+                if (collectionType.isAssignableFrom(clazz)) {
+                    tList.add(clazz);
+                } else {
+                    cList.add(clazz);
+                }
+            }
+        }
+        return CodecRegistries.fromRegistries(MongoClient.getDefaultCodecRegistry(),
+                CodecRegistries.fromProviders(SafePOJO.getProviderBuilder(collectionType, defaultType, tList.toArray(new Class[0]))
+                        .register(cList.toArray(new Class[0])).build()));
     }
 
     /**
@@ -191,11 +209,11 @@ public class SafePOJO {
 
     public static <TDocument> BsonDocument encode(TDocument object, Class<TDocument> clazz, CodecRegistry codecRegistry){
         BsonDocument result=new BsonDocument();
-        codecRegistry.get(clazz).encode(new BsonDocumentWriter(result),object,EncoderContext.builder().isEncodingCollectibleDocument(false).build());
+        codecRegistry.get(clazz).encode(new BsonDocumentWriter(result),object,EncoderContext.builder().isEncodingCollectibleDocument(true).build());
         return result;
     }
 
     public static <TDocument> TDocument decode(BsonDocument bson, Class<TDocument> clazz, CodecRegistry codecRegistry){
-        return codecRegistry.get(clazz).decode(new BsonDocumentReader(bson),DecoderContext.builder().checkedDiscriminator(true).build());
+        return codecRegistry.get(clazz).decode(new BsonDocumentReader(bson),DecoderContext.builder().checkedDiscriminator(false).build());
     }
 }

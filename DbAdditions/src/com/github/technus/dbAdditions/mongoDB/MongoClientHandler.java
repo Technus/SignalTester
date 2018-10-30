@@ -1,15 +1,19 @@
 package com.github.technus.dbAdditions.mongoDB;
 
 
+import com.github.technus.dbAdditions.mongoDB.pojo.ConnectionConfiguration;
 import com.mongodb.*;
 import com.mongodb.client.MongoDatabase;
 import com.mongodb.event.*;
-import org.bson.Document;
 
 public class MongoClientHandler implements AutoCloseable{
     private MongoClient client;
     private MongoDatabase mongoDatabase;
     private byte delay;
+
+    public MongoClientHandler(ConnectionConfiguration connectionConfiguration, ICommandFailRunner commandFailRunner, Runnable connectionValidRunner){
+        this(connectionConfiguration.getAddress(), connectionConfiguration.getPort(), connectionConfiguration.getUserName(), connectionConfiguration.getPassword(), connectionConfiguration.getAuthenticationDatabase(), connectionConfiguration.getDatabase(),commandFailRunner,connectionValidRunner);
+    }
 
     public MongoClientHandler(String address, int port, String database, ICommandFailRunner commandFailRunner, Runnable connectionValidRunner){
         this(address,port,null,null,null,database,commandFailRunner,connectionValidRunner);
