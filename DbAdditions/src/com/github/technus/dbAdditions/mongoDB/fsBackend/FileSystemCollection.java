@@ -1,5 +1,6 @@
 package com.github.technus.dbAdditions.mongoDB.fsBackend;
 
+import com.github.technus.dbAdditions.utility.Container;
 import com.github.technus.dbAdditions.utility.IContainer;
 import com.mongodb.*;
 import com.mongodb.MongoClient;
@@ -22,6 +23,7 @@ import java.io.FileFilter;
 import java.io.IOError;
 import java.io.IOException;
 import java.nio.file.Files;
+import java.security.InvalidParameterException;
 import java.time.Instant;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
@@ -54,15 +56,11 @@ public class FileSystemCollection<TDocument> implements MongoCollection<TDocumen
     @SuppressWarnings("unchecked")
     public FileSystemCollection(final File serverFolder, final MongoNamespace namespace, final Class<TDocument> documentClass,
                                  final CodecRegistry codecRegistry, final WriteConcern writeConcern) {
-        try {
             this.serverFolder = notNull("serverFolder",serverFolder).getAbsoluteFile();
-            this.namespaceContainer = IContainer.DEFAULT_IMPLEMENTATION.newInstance();
-            this.namespaceContainer.accept(notNull("namespaceContainer", namespace));
-            this.collectionFolderContainer = IContainer.DEFAULT_IMPLEMENTATION.newInstance();
-            this.collectionFolderContainer.accept(new File(serverFolder.getAbsolutePath() + File.separator + namespace.getDatabaseName() + File.separator + namespace.getCollectionName()));
-        }catch (InstantiationException|IllegalAccessException e){
-            throw new RuntimeException(e);
-        }
+            this.namespaceContainer = new Container<>(notNull("namespaceContainer", namespace));
+            this.collectionFolderContainer = new Container<>(
+                    new File(serverFolder.getAbsolutePath() + File.separator + namespace.getDatabaseName()
+                            + File.separator + namespace.getCollectionName()));
         this.documentClass = notNull("documentClass", documentClass);
         this.codecRegistry = notNull("codecRegistry", codecRegistry);
         this.writeConcern = notNull("writeConcern", writeConcern);
@@ -1146,7 +1144,7 @@ public class FileSystemCollection<TDocument> implements MongoCollection<TDocumen
                     case OBJECT_ID:
                         return value.asObjectId().getValue().toHexString();
                     case NULL: case UNDEFINED: default:
-                        throw new RuntimeException("_id must be a ObjectID or String that matches a valid filename");
+                        throw new InvalidParameterException("_id must be a ObjectID or String that matches a valid filename");
                 }
             }));
         }

@@ -1,0 +1,7 @@
+{
+  "_id" : "defaultConfiguration",
+  "_t" : "com.github.technus.signalTester.settings.ApplicationConfiguration",
+  "timestamp" : {
+    "$date" : "2018-10-31T14:45:42.587Z"
+  }
+}

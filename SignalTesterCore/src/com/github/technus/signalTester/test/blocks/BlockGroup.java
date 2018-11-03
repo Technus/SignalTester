@@ -1,4 +1,4 @@
-package com.github.technus.signalTester.blocks;
+package com.github.technus.signalTester.test.blocks;
 
 import java.util.HashMap;
 

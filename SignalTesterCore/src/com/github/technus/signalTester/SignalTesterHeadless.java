@@ -1,17 +1,22 @@
 package com.github.technus.signalTester;
 
+import com.github.technus.dbAdditions.functionalInterfaces.ITimedModification;
 import com.github.technus.dbAdditions.mongoDB.MongoClientHandler;
 import com.github.technus.dbAdditions.mongoDB.SafePOJO;
 import com.github.technus.dbAdditions.mongoDB.fsBackend.FileSystemCollection;
 import com.github.technus.dbAdditions.mongoDB.pojo.ConnectionConfiguration;
 import com.github.technus.dbAdditions.mongoDB.pojo.ThrowableLog;
-import com.github.technus.signalTester.settings.Configuration;
-import com.github.technus.signalTester.settings.Initializer;
+import com.github.technus.dbAdditions.mongoDB.pojo.UserNT;
+import com.github.technus.dbAdditions.utility.Container;
+import com.github.technus.dbAdditions.utility.IContainer;
+import com.github.technus.signalTester.settings.ApplicationConfiguration;
+import com.github.technus.signalTester.settings.ApplicationInitializer;
+import com.github.technus.signalTester.test.TestDefinition;
+import com.github.technus.signalTester.test.TestResult;
 import com.mongodb.MongoNamespace;
 import com.mongodb.MongoTimeoutException;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
-import com.sun.security.auth.module.NTSystem;
 import org.bson.BsonDocument;
 import org.bson.Document;
 import org.bson.codecs.configuration.CodecRegistry;
@@ -19,28 +24,43 @@ import org.bson.json.JsonWriterSettings;
 import org.bson.types.ObjectId;
 
 import java.io.File;
-import java.io.IOError;
 import java.io.IOException;
-import java.net.InetAddress;
 import java.nio.file.Files;
 import java.util.Locale;
 import java.util.function.Consumer;
+import java.util.function.Supplier;
 
 import static com.github.technus.dbAdditions.mongoDB.pojo.ThrowableLog.THROWABLE_LOG_COLLECTION_CODECS;
 
 public class SignalTesterHeadless implements AutoCloseable{
-    private final MongoClientHandler localClient, remoteClient;
-    private MongoCollection<ThrowableLog> throwableLogCollectionLocal;
-    private MongoCollection<ThrowableLog> throwableLogCollectionRemote;
-    private MongoCollection<Configuration> configurationCollectionLocal;
-    private MongoCollection<Configuration> configurationCollectionRemote;
+    private String[] args;
+    private MongoClientHandler remoteClient;
     private Consumer<Throwable> throwableConsumer;
+    private Consumer<TestResult> resultConsumer;
+    private MongoCollection<ThrowableLog> throwableCollectionLocal;
+    private MongoCollection<ThrowableLog> throwableCollectionRemote;
+    private MongoCollection<ApplicationConfiguration> configurationCollectionRemote;
+    private MongoCollection<TestDefinition> definitionCollectionRemote;
+    private MongoCollection<TestResult> resultCollectionLocal;
+    private MongoCollection<TestResult> resultCollectionRemote;
 
+    private IContainer<ApplicationConfiguration> configurationContainer;
+    private IContainer<TestDefinition> definitionContainer;
+
+    public static void main(String... args) {
+        try{
+            new SignalTesterHeadless(args).initialize();
+        }catch (Throwable t){
+            t.printStackTrace();
+            System.exit(1);
+        }
+    }
+
+    @SuppressWarnings("unchecked")
     public SignalTesterHeadless(String... args) {
         ThrowableLog.currentApplicationName ="SignalTester";
-
         throwableConsumer = throwable -> {
-            if (getThrowableLogCollectionLocal() == null) {
+            if (throwableCollectionLocal == null) {
                 throwable.printStackTrace();
             } else {
                 ThrowableLog log;
@@ -51,195 +71,202 @@ public class SignalTesterHeadless implements AutoCloseable{
                     log = new ThrowableLog(throwable,10);
                 }
                 try {
-                    getThrowableLogCollectionLocal().insertOne(log);
+                    throwableCollectionLocal.insertOne(log);
                 }catch (Exception e){
                     new Exception("Unable to insert throwable log",e).printStackTrace();
+                    throwable.printStackTrace();
                 }
             }
         };
 
-        Initializer initializer;
-        File initializerFile=new File("defaultInitializer."+FileSystemCollection.EXTENSION).getAbsoluteFile();
-        if(args!=null && args.length>0 && args[0]!=null && args[0].endsWith('.'+FileSystemCollection.EXTENSION)) {
-            initializerFile=new File(args[0]);
+        resultConsumer=result -> {
+            if(resultCollectionLocal==null){
+                throw new Error("TestResult collection cannot be null");
+            }else {
+                try {
+                    resultCollectionLocal.insertOne(result);
+                }catch (Exception e){
+                    new Exception("Unable to insert throwable log",e).printStackTrace();
+                    logError(e);
+                }
+            }
+        };
+        this.args=args;
+    }
+
+    public void initialize() throws Exception {
+        ApplicationInitializer applicationInitializer;
+        File initializerFile = new File("defaultInitializer." + FileSystemCollection.EXTENSION).getAbsoluteFile();
+        if (args != null && args.length > 0 && args[0] != null && args[0].endsWith('.' + FileSystemCollection.EXTENSION)) {
+            initializerFile = new File(args[0]);
         }
-        CodecRegistry initializerRegistry = SafePOJO.buildCodecRegistryWithOtherClasses(
-                Initializer.class,Initializer.class,Initializer.class,ConnectionConfiguration.class);
+
+        CodecRegistry initializerRegistry = SafePOJO.buildCodecRegistryWithOtherClassesOrCodecs(
+                ApplicationInitializer.class, ApplicationInitializer.class, ConnectionConfiguration.class);
+
         if (initializerFile.isFile()) {
-            try {
-                initializer = SafePOJO.decode(BsonDocument.parse(new String(
-                        Files.readAllBytes(initializerFile.toPath()))),Initializer.class,initializerRegistry);
-            }catch (IOException e){
-                throw new IOError(e);
-            }catch (Exception e){
-                throw new Error("Cannot initialize with "+initializerFile.getAbsolutePath(),e);
-            }
+            applicationInitializer = SafePOJO.decode(BsonDocument.parse(new String(
+                    Files.readAllBytes(initializerFile.toPath()))), ApplicationInitializer.class, initializerRegistry);
         } else {
-            initializer=new Initializer();
-            BsonDocument initializerDocument= SafePOJO.encode(initializer,Initializer.class,initializerRegistry);
-            try {
-                Files.write(initializerFile.toPath(),
-                        initializerDocument.toJson(JsonWriterSettings.builder().indent(true).build()).getBytes());
-            }catch (IOException e){
-                throw new IOError(e);
-            }
+            applicationInitializer = new ApplicationInitializer();
+            BsonDocument initializerDocument = SafePOJO.encode(applicationInitializer, ApplicationInitializer.class, initializerRegistry);
+            Files.write(initializerFile.toPath(), initializerDocument.toJson(JsonWriterSettings.builder().indent(true).build()).getBytes());
         }
 
-        CodecRegistry configurationCollectionCodecs=
-                SafePOJO.buildCodecRegistry(Configuration.class,Configuration.class,Configuration.class);//discriminate
+        try {
+            Locale.setDefault(Locale.forLanguageTag(applicationInitializer.getLanguageTag()));
+        } catch (NullPointerException e) {
+            Locale.setDefault(Locale.US);
+        }
 
-        localClient =new MongoClientHandler(initializer.local,commandFailedEvent -> {
-            System.out.println("COMMAND FAILED "+commandFailedEvent.getCommandName());
-        },()->{
-
-        });
-        remoteClient =new MongoClientHandler(initializer.remote, commandFailedEvent -> {
-            System.out.println("COMMAND FAILED "+commandFailedEvent.getCommandName());
-        },()->{
-            if(getThrowableLogCollectionLocal()!=null && getThrowableLogCollectionRemote()!=null) {
-                for (ThrowableLog log : getThrowableLogCollectionLocal().find()) {
-                    ObjectId id=log.getId();
+        remoteClient = new MongoClientHandler(applicationInitializer.getRemote(), commandFailedEvent -> {
+            System.out.println("COMMAND FAILED " + commandFailedEvent.getCommandName());
+        }, () -> {
+            if (resultCollectionLocal != null && resultCollectionRemote != null) {
+                for (TestResult result : resultCollectionLocal.find()) {
+                    ObjectId id = result.getId();
+                    try {
+                        result.setId(null);
+                        resultCollectionRemote.insertOne(result);
+                        resultCollectionLocal.deleteOne(new Document().append("_id", id));
+                    } catch (Exception e) {
+                        logError(e);
+                        break;
+                    }
+                }
+            }
+            if (throwableCollectionLocal != null && throwableCollectionRemote != null) {
+                for (ThrowableLog log : throwableCollectionLocal.find()) {
+                    ObjectId id = log.getId();
                     try {
                         log.setId(null);
-                        getThrowableLogCollectionRemote().insertOne(log);
-                        getThrowableLogCollectionLocal().deleteOne(new Document().append("_id",id));
-                    }catch (Exception e){
+                        throwableCollectionRemote.insertOne(log);
+                        throwableCollectionLocal.deleteOne(new Document().append("_id", id));
+                    } catch (Exception e) {
                         e.printStackTrace();//just to be sure that there is no infinite work to do...
-                        return;
-                    }
-                }
-            }
-            if(getConfigurationCollectionLocal()!=null && getConfigurationCollectionRemote()!=null){
-                for (Configuration configuration : getConfigurationCollectionLocal().find()) {
-                    String id=configuration.getId();
-                    try {
-                        //configuration.setId(null);
-                        getConfigurationCollectionRemote().insertOne(configuration);
-                        getConfigurationCollectionLocal().deleteOne(new Document().append("_id",id));
-                    }catch (Exception e){
-                        logError(e);
-                        return;
+                        break;
                     }
                 }
             }
         });
-        MongoDatabase localDatabase = localClient.getDatabase();
         MongoDatabase remoteDatabase = remoteClient.getDatabase();
 
-        MongoCollection<ThrowableLog> throwableLogCollectionFileSystem = new FileSystemCollection<>(new File(initializer.localFilesPath),
-                new MongoNamespace(initializer.local.getDatabase(), ThrowableLog.class.getSimpleName()), ThrowableLog.class)
+        CodecRegistry configurationCodecs = SafePOJO.buildCodecRegistryWithOtherClassesOrCodecs(ApplicationConfiguration.class, ApplicationConfiguration.class, ApplicationConfiguration.class);
+        CodecRegistry definitionCodecs = SafePOJO.buildCodecRegistryWithOtherClassesOrCodecs(TestDefinition.class, TestDefinition.class, TestDefinition.class);
+        CodecRegistry resultCodecs = SafePOJO.buildCodecRegistryWithOtherClassesOrCodecs(TestResult.class, TestResult.class, TestResult.class, UserNT.class);
+
+        throwableCollectionLocal = new FileSystemCollection<>(new File(applicationInitializer.getLocalFilesPath()),
+                new MongoNamespace("tecAppsLocal", ThrowableLog.class.getSimpleName()), ThrowableLog.class)
                 .withCodecRegistry(THROWABLE_LOG_COLLECTION_CODECS);
-
-        MongoCollection<Configuration> configurationCollectionFileSystem = new FileSystemCollection<>(new File(initializer.localFilesPath),
-                new MongoNamespace(initializer.local.getDatabase(), Configuration.class.getSimpleName()), Configuration.class)
-                .withCodecRegistry(configurationCollectionCodecs);
-
-        throwableLogCollectionLocal= localDatabase.getCollection(ThrowableLog.class.getSimpleName(),ThrowableLog.class)
-                .withCodecRegistry(THROWABLE_LOG_COLLECTION_CODECS);
-
-        configurationCollectionLocal= localDatabase.getCollection(Configuration.class.getSimpleName(),Configuration.class)
-                .withCodecRegistry(configurationCollectionCodecs);
-
-        try {
-            localDatabase.runCommand(new Document().append("ping", ""));
-            for(ThrowableLog log: throwableLogCollectionFileSystem.find()){
-                throwableLogCollectionLocal.insertOne(log);
-            }
-            throwableLogCollectionFileSystem.drop();
-            throwableLogCollectionFileSystem =null;
-        }catch (MongoTimeoutException e){
-            throwableLogCollectionLocal= throwableLogCollectionFileSystem;
-            //logError(e);
-            e.printStackTrace();
-        }
-
-        try {
-            localDatabase.runCommand(new Document().append("ping", ""));
-            for(Configuration configuration: configurationCollectionFileSystem.find()){
-                configurationCollectionLocal.insertOne(configuration);
-            }
-            configurationCollectionFileSystem.drop();
-            configurationCollectionFileSystem =null;
-        }catch (MongoTimeoutException e){
-            configurationCollectionLocal= configurationCollectionFileSystem;
-            //logError(e);
-            e.printStackTrace();
-        }
+        resultCollectionLocal = new FileSystemCollection<>(new File(applicationInitializer.getLocalFilesPath()),
+                new MongoNamespace("tecAppsLocal", TestResult.class.getSimpleName()), TestResult.class)
+                .withCodecRegistry(resultCodecs);
 
         try {
             remoteDatabase.runCommand(new Document().append("ping", ""));
-        }catch (MongoTimeoutException e){
-            //logError(e);
+        } catch (MongoTimeoutException e) {
             e.printStackTrace();
-        }finally{
-            throwableLogCollectionRemote= remoteDatabase.getCollection(ThrowableLog.class.getSimpleName(),ThrowableLog.class)
-                    .withCodecRegistry(THROWABLE_LOG_COLLECTION_CODECS);
-            configurationCollectionRemote= remoteDatabase.getCollection(Configuration.class.getSimpleName(),Configuration.class)
-                    .withCodecRegistry(configurationCollectionCodecs);
+        } catch (Exception e) {
+            logError(e);
         }
-        if(configurationCollectionLocal.estimatedDocumentCount()==0) {
-            configurationCollectionLocal.insertOne(new Configuration());
+
+        throwableCollectionRemote = remoteDatabase.getCollection(ThrowableLog.class.getSimpleName(), ThrowableLog.class)
+                .withCodecRegistry(THROWABLE_LOG_COLLECTION_CODECS);
+        configurationCollectionRemote = remoteDatabase.getCollection(ApplicationConfiguration.class.getSimpleName(), ApplicationConfiguration.class)
+                .withCodecRegistry(configurationCodecs);
+        definitionCollectionRemote = remoteDatabase.getCollection(TestDefinition.class.getSimpleName(), TestDefinition.class)
+                .withCodecRegistry(definitionCodecs);
+        resultCollectionRemote = remoteDatabase.getCollection(TestResult.class.getSimpleName(), TestResult.class)
+                .withCodecRegistry(resultCodecs);
+
+        File configurationFile = new File(applicationInitializer.getLocalFilesPath() + File.separator + applicationInitializer.getConfigurationName() + '.' + FileSystemCollection.EXTENSION);
+        setContainerContent(ApplicationConfiguration.class,ApplicationConfiguration::new,configurationContainer=new Container<>(),configurationFile,applicationInitializer.getConfigurationName(),configurationCollectionRemote);
+
+        File definitionFile = new File(applicationInitializer.getLocalFilesPath() + File.separator + applicationInitializer.getDefinitionName() + '.' + FileSystemCollection.EXTENSION);
+        setContainerContent(TestDefinition.class,TestDefinition::new,definitionContainer=new Container<>(),definitionFile,applicationInitializer.getDefinitionName(),definitionCollectionRemote);
+    }
+
+    @SuppressWarnings("unchecked")
+    public <T extends ITimedModification> T setContainerContent(Class<T> clazz,Supplier<T> newInstanceCreator, IContainer<T> container, File redundantFile, String redundantName, MongoCollection<T> collection) throws IOException {
+        T remote = null, local;
+        try {
+            remote= collection.find(new Document().append("_id", redundantName)).first();
+        } catch (MongoTimeoutException e) {
+            e.printStackTrace();
+        } catch (Exception e) {
+            logError(e);
+        } finally {
+            if (remote == null) {
+                remote = newInstanceCreator.get();
+            }
         }
+        if (redundantFile.isFile()) {
+            local = SafePOJO.decode(BsonDocument.parse(new String(Files.readAllBytes(redundantFile.toPath()))), clazz, collection.getCodecRegistry());
+        } else {
+            local = remote;
+        }
+        container.accept(ITimedModification.getNewest(remote, local));
+        if (redundantFile.isFile() || !redundantFile.exists()) {
+            Files.write(redundantFile.toPath(), SafePOJO.encode(
+                    container.get(), clazz, collection.getCodecRegistry()).toJson(JsonWriterSettings.builder().indent(true).build()).getBytes());
+        }
+        return container.get();
     }
 
     @Override
     public void close() {
-        localClient.close();
         remoteClient.close();
     }
 
-    public MongoCollection<ThrowableLog> getThrowableLogCollectionLocal() {
-        return throwableLogCollectionLocal;
-    }
-
-    public MongoCollection<ThrowableLog> getThrowableLogCollectionRemote() {
-        return throwableLogCollectionRemote;
-    }
-
-    public MongoCollection<Configuration> getConfigurationCollectionLocal() {
-        return configurationCollectionLocal;
-    }
-
-    public MongoCollection<Configuration> getConfigurationCollectionRemote() {
+    public MongoCollection<ApplicationConfiguration> getConfigurationCollectionRemote() {
         return configurationCollectionRemote;
     }
 
+    public MongoCollection<TestDefinition> getDefinitionCollectionRemote() {
+        return definitionCollectionRemote;
+    }
+
+    public IContainer<ApplicationConfiguration> getConfigurationContainer() {
+        return configurationContainer;
+    }
+
+    public IContainer<TestDefinition> getDefinitionContainer() {
+        return definitionContainer;
+    }
+
     public void logError(Throwable t) {
-        if (throwableConsumer != null) {
-            try {
-                throwableConsumer.accept(t);
-            } catch (Throwable error) {
-                Throwable T = new Throwable("Unable to consume throwable! " + t.getClass().getName() + ": " + t.getMessage(), error);
-                T.setStackTrace(t.getStackTrace());
-                throwableConsumer.accept(T);
-            }
-        }
-    }
-
-    private static NTSystem ntSystem=new NTSystem();
-    public static String getUserName(){
-        return ntSystem.getDomain()+"\\"+ntSystem.getName();
-    }
-
-    public static String getSystemName(){
-        try {
-            return InetAddress.getLocalHost().getHostName();
-        } catch (Throwable e) {
-            return null;
-        }
-    }
-
-    public static String getFullName(){
-        return getSystemName()+"\\"+getUserName();
-    }
-
-    public static void main(String... args) {
-        Locale.setDefault(Locale.US);
-        try{
-            new SignalTesterHeadless(args);
-        }catch (Throwable t){
+        if (throwableConsumer == null) {
             t.printStackTrace();
-            System.exit(1);
+        } else {
+            throwableConsumer.accept(t);
         }
+    }
+
+    public void logResult(TestResult result){
+        if (resultConsumer == null) {
+            resultCollectionLocal.insertOne(result);
+        } else {
+            resultConsumer.accept(result);
+        }
+    }
+
+    public MongoCollection<TestResult> getResultCollectionRemote() {
+        return resultCollectionRemote;
+    }
+
+    public Consumer<Throwable> getThrowableConsumer() {
+        return throwableConsumer;
+    }
+
+    public void setThrowableConsumer(Consumer<Throwable> throwableConsumer) {
+        this.throwableConsumer = throwableConsumer;
+    }
+
+    public Consumer<TestResult> getResultConsumer() {
+        return resultConsumer;
+    }
+
+    public void setResultConsumer(Consumer<TestResult> resultConsumer) {
+        this.resultConsumer = resultConsumer;
     }
 }

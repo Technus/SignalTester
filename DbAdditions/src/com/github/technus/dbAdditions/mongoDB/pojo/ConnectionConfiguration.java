@@ -1,10 +1,8 @@
 package com.github.technus.dbAdditions.mongoDB.pojo;
 
 import org.bson.codecs.pojo.annotations.BsonCreator;
-import org.bson.codecs.pojo.annotations.BsonDiscriminator;
 import org.bson.codecs.pojo.annotations.BsonProperty;
 
-@BsonDiscriminator
 public class ConnectionConfiguration {
     private final String address;
     private final int port;
@@ -16,6 +14,7 @@ public class ConnectionConfiguration {
     public ConnectionConfiguration() {
         this("localhost",27017,null,null,null,"admin");
     }
+
     public ConnectionConfiguration(String address, String database) {
         this(address,27017,null,null,null,database);
     }

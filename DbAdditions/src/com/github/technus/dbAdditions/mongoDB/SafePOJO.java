@@ -5,6 +5,7 @@ import com.mongodb.MongoClient;
 import org.bson.BsonDocument;
 import org.bson.BsonDocumentReader;
 import org.bson.BsonDocumentWriter;
+import org.bson.codecs.Codec;
 import org.bson.codecs.DecoderContext;
 import org.bson.codecs.EncoderContext;
 import org.bson.codecs.configuration.CodecProvider;
@@ -24,21 +25,27 @@ public class SafePOJO {
     }
 
     @SuppressWarnings("unchecked")
-    public static <T> CodecRegistry buildCodecRegistryWithOtherClasses(Class<T> collectionType, Class<? extends T> defaultType, Class... additionalDiscriminatedTypes){
-        List<Class<? extends T>> tList=new ArrayList<>();
-        List<Class> cList=new ArrayList<>();
-        if(additionalDiscriminatedTypes!=null) {
-            for (Class clazz : additionalDiscriminatedTypes) {
-                if (collectionType.isAssignableFrom(clazz)) {
-                    tList.add(clazz);
-                } else {
-                    cList.add(clazz);
+    public static <T> CodecRegistry buildCodecRegistryWithOtherClassesOrCodecs(Class<T> collectionType, Class<? extends T> defaultType, Object... additional){
+        List<Class<? extends T>> typeList=new ArrayList<>();
+        List<Class> classList=new ArrayList<>();
+        List<Codec> codecList=new ArrayList<>();
+        if(additional!=null) {
+            for (Object object : additional) {
+                if(object instanceof Class){
+                    if (collectionType.isAssignableFrom((Class)object)) {
+                        typeList.add((Class)object);
+                    } else {
+                        classList.add((Class)object);
+                    }
+                }else if(object instanceof Codec){
+                    codecList.add((Codec) object);
                 }
             }
         }
-        return CodecRegistries.fromRegistries(MongoClient.getDefaultCodecRegistry(),
-                CodecRegistries.fromProviders(SafePOJO.getProviderBuilder(collectionType, defaultType, tList.toArray(new Class[0]))
-                        .register(cList.toArray(new Class[0])).build()));
+        CodecRegistry additonalCodecs=CodecRegistries.fromCodecs(codecList.toArray(new Codec[0]));
+        return CodecRegistries.fromRegistries(MongoClient.getDefaultCodecRegistry(),additonalCodecs,
+                CodecRegistries.fromProviders(SafePOJO.getProviderBuilder(collectionType, defaultType, typeList.toArray(new Class[0]))
+                        .register(classList.toArray(new Class[0])).build()));
     }
 
     /**

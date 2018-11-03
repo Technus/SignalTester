@@ -13,12 +13,21 @@ import java.io.PrintStream;
 import java.util.Optional;
 
 public class MainWindow {
-    private final MainModel model=new MainModel();
+    private final MainModel model;
 
     public AnchorPane rootPane;
     public BorderPane mainPane;
 
     public Region defaultRegion;//default place for error log
+
+    public MainWindow(){
+        model=new MainModel();
+        try{
+            model.initialize();
+        }catch (Exception e){
+            model.headless.logError(e);
+        }
+    }
 
     public ButtonType showConfirmThrowableMain(Throwable throwable,ButtonType... buttonTypes){
         return showConfirmThrowable(defaultRegion,throwable,buttonTypes);
@@ -37,7 +46,7 @@ public class MainWindow {
     }
 
     private ButtonType showConfirmThrowable(Region region,Throwable throwable,ButtonType... buttonTypes){
-        //todo place window on top of region
+        //todo place window on top of region centered...
         model.headless.logError(throwable);
         Alert alert = new Alert(Alert.AlertType.ERROR,null,buttonTypes);
         alert.setTitle(throwable.getClass().getSimpleName());

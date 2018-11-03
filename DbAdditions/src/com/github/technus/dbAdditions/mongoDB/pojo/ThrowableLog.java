@@ -4,8 +4,6 @@ import com.github.technus.dbAdditions.mongoDB.SafePOJO;
 import com.github.technus.dbAdditions.mongoDB.codecs.ClassCodec;
 import com.github.technus.dbAdditions.mongoDB.codecs.StackTraceElementCodec;
 import com.github.technus.dbAdditions.mongoDB.conventions.BsonRemove;
-import com.mongodb.MongoClient;
-import org.bson.codecs.configuration.CodecRegistries;
 import org.bson.codecs.configuration.CodecRegistry;
 import org.bson.codecs.pojo.annotations.BsonCreator;
 import org.bson.codecs.pojo.annotations.BsonId;
@@ -18,11 +16,9 @@ import java.util.Arrays;
 
 public class ThrowableLog {
     public static String currentApplicationName;
-    public static final CodecRegistry THROWABLE_LOG_COLLECTION_CODECS =CodecRegistries.fromRegistries(
-            MongoClient.getDefaultCodecRegistry(),
-            CodecRegistries.fromProviders(
-                    SafePOJO.getProviderBuilder(ThrowableLog.class, ThrowableLog.class).register(ThreadLog.class).register(ThreadGroupLog.class).build()),
-            CodecRegistries.fromCodecs(ClassCodec.INSTANCE,StackTraceElementCodec.INSTANCE));
+    public static final CodecRegistry THROWABLE_LOG_COLLECTION_CODECS =
+            SafePOJO.buildCodecRegistryWithOtherClassesOrCodecs(ThrowableLog.class,ThrowableLog.class,
+                    ThrowableLog.class,ThreadLog.class,ThreadGroupLog.class,UserNT.class,ClassCodec.INSTANCE,StackTraceElementCodec.INSTANCE);
 
     private ObjectId id;
     private final String applicationName;
@@ -35,6 +31,7 @@ public class ThrowableLog {
     private final ArrayList<StackTraceElement> stackTrace;
     private final ThreadLog threadLog;
     private final Instant time;
+    private final UserNT userNT;
 
     public ThrowableLog(Throwable t){
         time=Instant.now();
@@ -61,8 +58,8 @@ public class ThrowableLog {
             suppressed = null;
         }
         applicationName = currentApplicationName;
-
         stackTrace = new ArrayList<>(Arrays.asList(t.getStackTrace()));
+        userNT=new UserNT();
     }
 
     public ThrowableLog(Throwable t, int depthLevelsCount){
@@ -90,9 +87,9 @@ public class ThrowableLog {
         } else {
             suppressed = null;
         }
-
         applicationName = currentApplicationName;
         stackTrace = new ArrayList<>(Arrays.asList(t.getStackTrace()));
+        userNT=new UserNT();
     }
 
     @BsonCreator
@@ -101,6 +98,7 @@ public class ThrowableLog {
             @BsonProperty("time") Instant time,
             @BsonProperty("threadLog") ThreadLog threadLog,
             @BsonProperty("applicationName") String applicationName,
+            @BsonProperty("userNT") UserNT userNT,
             @BsonProperty("throwableClass") Class<? extends Throwable> throwableClass,
             @BsonProperty("message") String message,
             @BsonProperty("cause") ThrowableLog cause,
@@ -110,6 +108,7 @@ public class ThrowableLog {
         this.time=time;
         this.threadLog=threadLog;
         this.applicationName = applicationName;
+        this.userNT = userNT;
         this.throwable = null;
         this.throwableClass = throwableClass;
         this.message = message;
@@ -161,5 +160,9 @@ public class ThrowableLog {
 
     public ThreadLog getThreadLog() {
         return threadLog;
+    }
+
+    public UserNT getUserNT() {
+        return userNT;
     }
 }
