@@ -48,11 +48,14 @@ public class SignalTesterHeadless implements AutoCloseable{
     private IContainer<TestDefinition> definitionContainer;
 
     public static void main(String... args) {
+        SignalTesterHeadless signalTesterHeadless=new SignalTesterHeadless(args);
         try{
-            new SignalTesterHeadless(args).initialize();
-        }catch (Throwable t){
-            t.printStackTrace();
+            signalTesterHeadless.initialize();
+        }catch (Error t){
+            signalTesterHeadless.logError(t);
             System.exit(1);
+        }catch (Exception t){
+            signalTesterHeadless.logError(t);
         }
     }
 
@@ -63,18 +66,27 @@ public class SignalTesterHeadless implements AutoCloseable{
             if (throwableCollectionLocal == null) {
                 throwable.printStackTrace();
             } else {
-                ThrowableLog log;
                 try {
-                    log = new ThrowableLog(throwable);
-                }catch (Exception e){
-                    new Exception("Unable to create full throwable log",e).printStackTrace();
-                    log = new ThrowableLog(throwable,10);
-                }
-                try {
-                    throwableCollectionLocal.insertOne(log);
-                }catch (Exception e){
-                    new Exception("Unable to insert throwable log",e).printStackTrace();
-                    throwable.printStackTrace();
+                    boolean failed = false;
+                    ThrowableLog log;
+                    try {
+                        log = new ThrowableLog(throwable);
+                    } catch (Exception e) {
+                        new Exception("Unable to create full throwable log", e).printStackTrace();
+                        log = new ThrowableLog(throwable, 10);
+                        failed = true;
+                    }
+                    try {
+                        throwableCollectionLocal.insertOne(log);
+                    } catch (Exception e) {
+                        new Exception("Unable to insert throwable log", e).printStackTrace();
+                        failed = true;
+                    }
+                    if (failed) {
+                        throwable.printStackTrace();
+                    }
+                } catch (Throwable t) {
+                    new Error("Failed to log error", t).printStackTrace();
                 }
             }
         };
@@ -86,51 +98,84 @@ public class SignalTesterHeadless implements AutoCloseable{
                 try {
                     resultCollectionLocal.insertOne(result);
                 }catch (Exception e){
-                    new Exception("Unable to insert throwable log",e).printStackTrace();
-                    logError(e);
+                    throw new Error("Unable to insert result log",e);
                 }
             }
         };
         this.args=args;
     }
 
-    public void initialize() throws Exception {
+    public void initialize() {
         ApplicationInitializer applicationInitializer;
-        File initializerFile = new File("defaultInitializer." + FileSystemCollection.EXTENSION).getAbsoluteFile();
+        File initializerFile;
         if (args != null && args.length > 0 && args[0] != null && args[0].endsWith('.' + FileSystemCollection.EXTENSION)) {
             initializerFile = new File(args[0]);
+        }else{
+            initializerFile = new File("defaultInitializer." + FileSystemCollection.EXTENSION).getAbsoluteFile();
         }
 
         CodecRegistry initializerRegistry = SafePOJO.buildCodecRegistryWithOtherClassesOrCodecs(
                 ApplicationInitializer.class, ApplicationInitializer.class, ConnectionConfiguration.class);
+        CodecRegistry configurationCodecs = SafePOJO.buildCodecRegistryWithOtherClassesOrCodecs(
+                ApplicationConfiguration.class, ApplicationConfiguration.class, ApplicationConfiguration.class);
+        CodecRegistry definitionCodecs = SafePOJO.buildCodecRegistryWithOtherClassesOrCodecs(
+                TestDefinition.class, TestDefinition.class, TestDefinition.class);
+        CodecRegistry resultCodecs = SafePOJO.buildCodecRegistryWithOtherClassesOrCodecs(
+                TestResult.class, TestResult.class, TestResult.class, UserNT.class);
 
         if (initializerFile.isFile()) {
-            applicationInitializer = SafePOJO.decode(BsonDocument.parse(new String(
-                    Files.readAllBytes(initializerFile.toPath()))), ApplicationInitializer.class, initializerRegistry);
+            try {
+                applicationInitializer = SafePOJO.decode(BsonDocument.parse(new String(
+                        Files.readAllBytes(initializerFile.toPath()))), ApplicationInitializer.class, initializerRegistry);
+            }catch (IOException e){
+                throw new Error("Unable to read initializer "+initializerFile.getAbsolutePath(),e);
+            }catch (Exception e){
+                throw new Error("Unable to decode initializer",e);
+            }
         } else {
             applicationInitializer = new ApplicationInitializer();
             BsonDocument initializerDocument = SafePOJO.encode(applicationInitializer, ApplicationInitializer.class, initializerRegistry);
-            Files.write(initializerFile.toPath(), initializerDocument.toJson(JsonWriterSettings.builder().indent(true).build()).getBytes());
+            try {
+                Files.write(initializerFile.toPath(), initializerDocument.toJson(JsonWriterSettings.builder().indent(true).build()).getBytes());
+            }catch (IOException e){
+                logError(new Exception("Couldn't write initializer to "+initializerFile.getAbsolutePath(),e));
+            }catch (Exception e){
+                logError(new Exception("Couldn't encode initializer",e));
+            }
         }
 
         try {
             Locale.setDefault(Locale.forLanguageTag(applicationInitializer.getLanguageTag()));
-        } catch (NullPointerException e) {
+        } catch (Exception e) {
+            logError(new Exception("Couldn't set locale, using default en_US",e));
             Locale.setDefault(Locale.US);
         }
 
-        remoteClient = new MongoClientHandler(applicationInitializer.getRemote(), commandFailedEvent -> {
-            System.out.println("COMMAND FAILED " + commandFailedEvent.getCommandName());
-        }, () -> {
+        throwableCollectionLocal = new FileSystemCollection<>(new File(applicationInitializer.getLocalFilesPath()),
+                new MongoNamespace("tecAppsLocal", ThrowableLog.class.getSimpleName()), ThrowableLog.class)
+                .withCodecRegistry(THROWABLE_LOG_COLLECTION_CODECS);
+        resultCollectionLocal = new FileSystemCollection<>(new File(applicationInitializer.getLocalFilesPath()),
+                new MongoNamespace("tecAppsLocal", TestResult.class.getSimpleName()), TestResult.class)
+                .withCodecRegistry(resultCodecs);
+
+        remoteClient = new MongoClientHandler(applicationInitializer.getRemote(),
+                commandFailedEvent -> logError(commandFailedEvent.getThrowable()), () -> {
             if (resultCollectionLocal != null && resultCollectionRemote != null) {
                 for (TestResult result : resultCollectionLocal.find()) {
                     ObjectId id = result.getId();
                     try {
                         result.setId(null);
                         resultCollectionRemote.insertOne(result);
-                        resultCollectionLocal.deleteOne(new Document().append("_id", id));
                     } catch (Exception e) {
-                        logError(e);
+                        logError(new Exception("Couldn't insert result to remote",e));
+                        break;
+                    }finally {
+                        result.setId(id);
+                    }
+                    try{
+                        resultCollectionLocal.deleteOne(new Document().append("_id", result.getId()));
+                    }catch (Exception e){
+                        logError(new Exception("Couldn't delete result from local",e));
                         break;
                     }
                 }
@@ -143,7 +188,7 @@ public class SignalTesterHeadless implements AutoCloseable{
                         throwableCollectionRemote.insertOne(log);
                         throwableCollectionLocal.deleteOne(new Document().append("_id", id));
                     } catch (Exception e) {
-                        e.printStackTrace();//just to be sure that there is no infinite work to do...
+                        new Exception("Couldn't insert throwable log to remote",e).printStackTrace();//just to be sure that there is no infinite work to do...
                         break;
                     }
                 }
@@ -151,23 +196,12 @@ public class SignalTesterHeadless implements AutoCloseable{
         });
         MongoDatabase remoteDatabase = remoteClient.getDatabase();
 
-        CodecRegistry configurationCodecs = SafePOJO.buildCodecRegistryWithOtherClassesOrCodecs(ApplicationConfiguration.class, ApplicationConfiguration.class, ApplicationConfiguration.class);
-        CodecRegistry definitionCodecs = SafePOJO.buildCodecRegistryWithOtherClassesOrCodecs(TestDefinition.class, TestDefinition.class, TestDefinition.class);
-        CodecRegistry resultCodecs = SafePOJO.buildCodecRegistryWithOtherClassesOrCodecs(TestResult.class, TestResult.class, TestResult.class, UserNT.class);
-
-        throwableCollectionLocal = new FileSystemCollection<>(new File(applicationInitializer.getLocalFilesPath()),
-                new MongoNamespace("tecAppsLocal", ThrowableLog.class.getSimpleName()), ThrowableLog.class)
-                .withCodecRegistry(THROWABLE_LOG_COLLECTION_CODECS);
-        resultCollectionLocal = new FileSystemCollection<>(new File(applicationInitializer.getLocalFilesPath()),
-                new MongoNamespace("tecAppsLocal", TestResult.class.getSimpleName()), TestResult.class)
-                .withCodecRegistry(resultCodecs);
-
         try {
             remoteDatabase.runCommand(new Document().append("ping", ""));
         } catch (MongoTimeoutException e) {
             e.printStackTrace();
         } catch (Exception e) {
-            logError(e);
+            logError(new Exception("Couldn't ping database",e));
         }
 
         throwableCollectionRemote = remoteDatabase.getCollection(ThrowableLog.class.getSimpleName(), ThrowableLog.class)
@@ -180,21 +214,32 @@ public class SignalTesterHeadless implements AutoCloseable{
                 .withCodecRegistry(resultCodecs);
 
         File configurationFile = new File(applicationInitializer.getLocalFilesPath() + File.separator + applicationInitializer.getConfigurationName() + '.' + FileSystemCollection.EXTENSION);
-        setContainerContent(ApplicationConfiguration.class,ApplicationConfiguration::new,configurationContainer=new Container<>(),configurationFile,applicationInitializer.getConfigurationName(),configurationCollectionRemote);
-
+        try {
+            setContainerContent(ApplicationConfiguration.class, ApplicationConfiguration::new, configurationContainer = new Container<>(), configurationFile, applicationInitializer.getConfigurationName(), configurationCollectionRemote);
+        }catch (IOException e){
+            logError(new Exception("Couldn't save configuration locally",e));
+        }catch (Exception e){
+            logError(new Exception("Couldn't encode configuration",e));
+        }
         File definitionFile = new File(applicationInitializer.getLocalFilesPath() + File.separator + applicationInitializer.getDefinitionName() + '.' + FileSystemCollection.EXTENSION);
-        setContainerContent(TestDefinition.class,TestDefinition::new,definitionContainer=new Container<>(),definitionFile,applicationInitializer.getDefinitionName(),definitionCollectionRemote);
+        try{
+            setContainerContent(TestDefinition.class,TestDefinition::new,definitionContainer=new Container<>(),definitionFile,applicationInitializer.getDefinitionName(),definitionCollectionRemote);
+        }catch (IOException e){
+            logError(new Exception("Couldn't save definition locally",e));
+        }catch (Exception e){
+            logError(new Exception("Couldn't encode definition",e));
+        }
     }
 
     @SuppressWarnings("unchecked")
-    public <T extends ITimedModification> T setContainerContent(Class<T> clazz,Supplier<T> newInstanceCreator, IContainer<T> container, File redundantFile, String redundantName, MongoCollection<T> collection) throws IOException {
+    public <T extends ITimedModification> void setContainerContent(Class<T> clazz, Supplier<T> newInstanceCreator, IContainer<T> container, File redundantFile, String redundantName, MongoCollection<T> collection) throws Exception {
         T remote = null, local;
         try {
             remote= collection.find(new Document().append("_id", redundantName)).first();
         } catch (MongoTimeoutException e) {
             e.printStackTrace();
         } catch (Exception e) {
-            logError(e);
+            logError(new Exception("Couldn't get remote object, using default",e));
         } finally {
             if (remote == null) {
                 remote = newInstanceCreator.get();
@@ -210,7 +255,7 @@ public class SignalTesterHeadless implements AutoCloseable{
             Files.write(redundantFile.toPath(), SafePOJO.encode(
                     container.get(), clazz, collection.getCodecRegistry()).toJson(JsonWriterSettings.builder().indent(true).build()).getBytes());
         }
-        return container.get();
+        container.get();
     }
 
     @Override
