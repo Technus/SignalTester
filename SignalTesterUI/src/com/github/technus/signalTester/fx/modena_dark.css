@@ -5,29 +5,64 @@
 
 /* Redefine base colors */
 .root {
-    -fx-base: rgb(0, 35, 100);
-    -fx-background: rgb(0, 10, 35);
+    -fx-base: rgb(0, 33, 64);
+    -fx-background: derive(-fx-base,-75%);
 
     /* make controls (buttons, thumb, etc.) slightly lighter */
-    -fx-color: derive(-fx-base, 15%);
+    -fx-color: derive(-fx-base,+15%);
+    -fx-hover-base: -fx-base;
+    -fx-pressed-base: derive(-fx-base,-75%);
 
     /* text fields and table rows background */
-    -fx-control-inner-background: rgb(0, 0, 20);
+    -fx-control-inner-background: derive(-fx-base,-40%);
     /* version of -fx-control-inner-background for alternative rows */
-    -fx-control-inner-background-alt: derive(-fx-control-inner-background, 2.5%);
+    -fx-control-inner-background-alt: derive(-fx-base,-80%);
 
     /* text colors depending on background's brightness */
-    -fx-light-text-color: rgb(150, 210, 230);
-    -fx-mid-text-color: rgb(40, 88, 102);
-    -fx-dark-text-color: rgb(0, 17, 26);
+    -fx-light-text-color: rgb(151, 197, 230);
+    -fx-mid-text-color: rgb(42, 72, 102);
+    -fx-dark-text-color: rgb(0, 11, 26);
 
     /* A bright blue for highlighting/accenting objects.  For example: selected
      * text; selected items in menus, lists, trees, and tables; progress bars */
-    -fx-accent: rgb(0, 64, 128);
+    -fx-accent: rgb(0, 50, 115);
 
     /* color of non-focused yet selected elements */
-    -fx-selection-bar-non-focused: rgb(0, 11, 64);
+    -fx-selection-bar-non-focused: rgb(0, 36, 77);
+    -fx-text-box-border:-fx-color;
+    -fx-box-border:-fx-color;
+
+    -fx-outer-border:derive(-fx-color,-50%);
 }
+
+.button:default {
+    -fx-base: -fx-accent;
+}
+
+/* focused cell (keyboard navigation) */
+.table-view:focused:row-selection > .virtual-flow > .clipped-container > .sheet > .table-row-cell:focused{
+    -fx-background-insets: -1 0 0 0, 0 0 1 0, 1 1 2 1, 2 2 3 2;
+    -fx-background-color: rgb(15, 68, 131), -fx-background, -fx-cell-focus-inner-border, -fx-background;
+}
+
+.table-view:focused:cell-selection > .virtual-flow > .clipped-container > .sheet > .table-row-cell > .table-cell:focused{
+     -fx-background-insets: 0 ,0 1 1 0,1 2 2 1,2 3 3 2;
+     -fx-background-color: rgb(15, 68, 131),-fx-background,-fx-cell-focus-inner-border,-fx-background;
+ }
+
+.tree-table-view:cell-selection > .virtual-flow > .clipped-container > .sheet > .tree-table-row-cell > .tree-table-cell {
+    -fx-background-insets: 0;
+}
+
+.tree-table-view:focused:cell-selection > .virtual-flow > .clipped-container > .sheet > .tree-table-row-cell > .tree-table-cell:focused {
+      -fx-background-color: -fx-background, -fx-cell-focus-inner-border, -fx-background;
+      -fx-background-insets: 0, 1 2 1 1, 2 3 2 2;
+}
+
+
+.progress-indicator > .determinate-indicator > .percentage {
+     -fx-fill: -fx-light-text-color;
+ }
 
 /* Fix derived prompt color for text fields */
 .text-input {
@@ -42,17 +77,17 @@
 /* Fix scroll bar buttons arrows colors */
 .scroll-bar > .increment-button > .increment-arrow,
 .scroll-bar > .decrement-button > .decrement-arrow {
-    -fx-background-color: -fx-mark-highlight-color, rgb(0, 17, 26);
+    -fx-background-color: rgb(0, 17, 26);
 }
 
 .scroll-bar > .increment-button:hover > .increment-arrow,
 .scroll-bar > .decrement-button:hover > .decrement-arrow {
-    -fx-background-color: -fx-mark-highlight-color, rgb(40, 88, 102);
+    -fx-background-color: rgb(40, 88, 102);
 }
 
 .scroll-bar > .increment-button:pressed > .increment-arrow,
 .scroll-bar > .decrement-button:pressed > .decrement-arrow {
-    -fx-background-color: -fx-mark-highlight-color, rgb(150, 210, 230);
+    -fx-background-color: rgb(150, 210, 230);
 }
 
 .tab-pane *.tab-header-background {
@@ -60,11 +95,31 @@
     -fx-effect: innershadow(two-pass-box , rgba(0,0,0,0) , 4, 0 , 0 , 0);
 }
 
-.scroll-bar:horizontal {
-    -fx-background-color: -fx-background, linear-gradient(to bottom, derive(-fx-base,-3%), derive(-fx-base,5%) 50%, derive(-fx-base,-3%));
-    -fx-background-insets: 0, 1 0 1 0;
+.scroll-bar{
+    -fx-font-size:14;
 }
-.scroll-bar:vertical {
-    -fx-background-color: -fx-background, linear-gradient(to right, derive(-fx-base,-3%), derive(-fx-base,5%) 50%, derive(-fx-base,-3%));
-    -fx-background-insets: 0, 0 1 0 1;
+
+.progress-bar > .bar {
+    -fx-background-insets: 3 3 3 3;
+}
+
+.tooltip {
+     -fx-background: derive(-fx-base,-75%);
+     -fx-text-fill: -fx-light-text-color;
+     -fx-background-color: -fx-accent,-fx-base;
+     -fx-background-radius: 12px,12px;
+    -fx-background-insets: -2,0;
+     -fx-padding: 0.667em 0.75em 0.667em 0.75em; /* 10px */
+     -fx-effect: innershadow( two-pass-box , rgba(0,0,0,0.5) , 15, 0 , 0 , 5 );
+     -fx-font-size: 1em;
+ }
+
+.axis {
+    AXIS_COLOR: derive(-fx-color,+30%);
+}
+.chart-vertical-grid-lines {
+     -fx-stroke: derive(-fx-color,+15%);
+ }
+.chart-horizontal-grid-lines {
+    -fx-stroke: derive(-fx-color,+15%);
 }
