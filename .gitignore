@@ -8,3 +8,4 @@ target/
 defaultInitializer.json
 tecAppsLocal/
 tecAppsRemote/
+*.json
