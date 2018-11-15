@@ -26,6 +26,7 @@ import org.bson.types.ObjectId;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
+import java.util.List;
 import java.util.Locale;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
@@ -49,14 +50,20 @@ public class SignalTesterHeadless implements AutoCloseable{
 
     public static void main(String... args) {
         SignalTesterHeadless signalTesterHeadless=new SignalTesterHeadless(args);
-        try{
-            signalTesterHeadless.initialize();
-        }catch (Error t){
-            signalTesterHeadless.logError(t);
-            System.exit(1);
-        }catch (Exception t){
-            signalTesterHeadless.logError(t);
-        }
+
+        Thread.setDefaultUncaughtExceptionHandler((t, e) -> {
+            signalTesterHeadless.logError(e);
+            if(!(e instanceof Exception)){
+                System.exit(1);
+            }
+        });
+        Thread.currentThread().setUncaughtExceptionHandler(Thread.getDefaultUncaughtExceptionHandler());
+
+        signalTesterHeadless.initialize();
+    }
+
+    public SignalTesterHeadless(List<String> parameters){
+        this(parameters!=null?parameters.toArray(new String[0]):new String[0]);
     }
 
     @SuppressWarnings("unchecked")
@@ -106,6 +113,15 @@ public class SignalTesterHeadless implements AutoCloseable{
     }
 
     public void initialize() {
+        CodecRegistry initializerRegistry = SafePOJO.buildCodecRegistryWithOtherClassesOrCodecs(
+                ApplicationInitializer.class, ApplicationInitializer.class, ConnectionConfiguration.class);
+        CodecRegistry configurationCodecs = SafePOJO.buildCodecRegistryWithOtherClassesOrCodecs(
+                ApplicationConfiguration.class, ApplicationConfiguration.class, ApplicationConfiguration.class);
+        CodecRegistry definitionCodecs = SafePOJO.buildCodecRegistryWithOtherClassesOrCodecs(
+                TestDefinition.class, TestDefinition.class);
+        CodecRegistry resultCodecs = SafePOJO.buildCodecRegistryWithOtherClassesOrCodecs(
+                TestResult.class, TestResult.class, UserNT.class);
+
         ApplicationInitializer applicationInitializer;
         File initializerFile;
         if (args != null && args.length > 0 && args[0] != null && args[0].endsWith('.' + FileSystemCollection.EXTENSION)) {
@@ -113,15 +129,6 @@ public class SignalTesterHeadless implements AutoCloseable{
         }else{
             initializerFile = new File("defaultInitializer." + FileSystemCollection.EXTENSION).getAbsoluteFile();
         }
-
-        CodecRegistry initializerRegistry = SafePOJO.buildCodecRegistryWithOtherClassesOrCodecs(
-                ApplicationInitializer.class, ApplicationInitializer.class, ConnectionConfiguration.class);
-        CodecRegistry configurationCodecs = SafePOJO.buildCodecRegistryWithOtherClassesOrCodecs(
-                ApplicationConfiguration.class, ApplicationConfiguration.class, ApplicationConfiguration.class);
-        CodecRegistry definitionCodecs = SafePOJO.buildCodecRegistryWithOtherClassesOrCodecs(
-                TestDefinition.class, TestDefinition.class, TestDefinition.class);
-        CodecRegistry resultCodecs = SafePOJO.buildCodecRegistryWithOtherClassesOrCodecs(
-                TestResult.class, TestResult.class, TestResult.class, UserNT.class);
 
         if (initializerFile.isFile()) {
             try {
