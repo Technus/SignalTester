@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import com.github.technus.signalTester.fx.additions.LogLinAxis?>
+<?import javafx.scene.chart.LineChart?>
+<?import javafx.scene.control.CheckBox?>
+<?import javafx.scene.control.Spinner?>
+<?import javafx.scene.control.TableColumn?>
+<?import javafx.scene.control.TableView?>
+<?import javafx.scene.layout.AnchorPane?>
+<?import javafx.scene.layout.BorderPane?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.VBox?>
+
+<AnchorPane prefHeight="400.0" prefWidth="600.0" xmlns="http://javafx.com/javafx/8.0.121" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.github.technus.signalTester.fx.additions.Logtest">
+   <children>
+      <BorderPane layoutX="181.0" layoutY="100.0" AnchorPane.bottomAnchor="0.0" AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="0.0">
+         <center>
+            <LineChart fx:id="chart" BorderPane.alignment="CENTER">
+              <xAxis>
+                <LogLinAxis side="BOTTOM" fx:id="xAxis" />
+              </xAxis>
+              <yAxis>
+                <LogLinAxis fx:id="yAxis" side="LEFT" />
+              </yAxis>
+            </LineChart>
+         </center>
+         <bottom>
+            <HBox prefHeight="100.0" prefWidth="504.0" BorderPane.alignment="CENTER">
+               <children>
+                  <Spinner fx:id="xMin" />
+                  <Spinner fx:id="xBase" />
+                  <Spinner fx:id="xMinor" />
+                  <Spinner fx:id="xMajor" />
+                  <Spinner fx:id="xMax" />
+                  <CheckBox fx:id="xAuto" />
+               </children>
+            </HBox>
+         </bottom>
+         <left>
+            <VBox prefHeight="200.0" prefWidth="100.0" BorderPane.alignment="CENTER" />
+         </left>
+         <right>
+            <TableView fx:id="table" editable="true" onContextMenuRequested="#addPoint" prefHeight="300.0" prefWidth="141.0" tableMenuButtonVisible="true" BorderPane.alignment="CENTER">
+              <columns>
+                <TableColumn prefWidth="75.0" text="X" fx:id="xCol" />
+                <TableColumn fx:id="yCol" prefWidth="75.0" text="Y" />
+              </columns>
+            </TableView>
+         </right>
+         <top>
+            <HBox prefHeight="100.0" prefWidth="200.0" BorderPane.alignment="CENTER">
+               <children>
+                  <Spinner fx:id="yMin" />
+                  <Spinner fx:id="yBase" />
+                  <Spinner fx:id="yMajor" />
+                  <Spinner fx:id="yMinor" />
+                  <Spinner fx:id="yMax" />
+                  <CheckBox fx:id="yAuto" />
+               </children>
+            </HBox>
+         </top>
+      </BorderPane>
+   </children>
+</AnchorPane>

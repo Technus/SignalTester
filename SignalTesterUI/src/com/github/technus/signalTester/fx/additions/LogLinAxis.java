@@ -33,12 +33,29 @@ public class LogLinAxis extends ValueAxis<Number> {
     private final DefaultFormatter defaultFormatter = new DefaultFormatter(this);
 
     //region -------------- PUBLIC PROPERTIES --------------------------------------------------------------------------------
+    {
+        widthProperty().addListener(observable -> {
+            invalidateRange();
+            requestAxisLayout();
+        });
+        heightProperty().addListener(observable -> {
+            invalidateRange();
+            requestAxisLayout();
+        });
+    }
 
     /** Base of the logarithm, set to 1,<=0,-1, for linear */
-    private DoubleProperty logBase = new DoublePropertyBase(-10) {
-        @Override protected void invalidated() {
-            requestAxisLayout();
+    private DoubleProperty logBase = new DoublePropertyBase(10) {
+        @Override
+        protected void invalidated() {
+            //invalidate animation
+            animator.stop(currentAnimationID);
+            currentUpperBound.set(getUpperBound());
+            currentLowerBound.set(getLogLowerBound());
+            scaleController.set(getScale());
+
             invalidateRange();
+            requestAxisLayout();
         }
 
         @Override
@@ -57,7 +74,7 @@ public class LogLinAxis extends ValueAxis<Number> {
                 super.set(-10);
             }else{
                 if(newValue>0){
-                    log10logBase =Math.log10(newValue);
+                    log10logBase.set(Math.log10(newValue));
                 }
                 super.set(newValue);
             }
@@ -68,18 +85,26 @@ public class LogLinAxis extends ValueAxis<Number> {
     public final boolean isUsingLogBase(){ return isUsingLogBase(logBase.getValue()); }
     public final boolean isUsingLinBase(){ return isUsingLinBase(logBase.getValue()); }
     public final double logBase() { return logBase.getValue(); }
-    public final void setLogBase(double value) {logBase.setValue(value);}
+    public final void setLogBase(double value) {logBase.set(value);}
     public final void setUsingLogBase(boolean usingLogBase){
         if(usingLogBase!=isUsingLogBase()){
-            logBase.setValue(-logBase.getValue());
+            logBase.set(-logBase.getValue());
         }
     }
     public final DoubleProperty logBaseProperty() { return logBase; }
 
-    private double log10logBase =1;
+    private ReadOnlyDoubleWrapper log10logBase =new ReadOnlyDoubleWrapper(LogLinAxis.this,"log10logBase",1);
 
     /** When true zero is always included in the visible range. This only has effect if auto-ranging is on. */
     private BooleanProperty linForceZeroInRange = new BooleanPropertyBase(true) {
+        @Override
+        protected void invalidated() {
+            if(isUsingLinBase() && isAutoRanging()){
+                requestAxisLayout();
+                invalidateRange();
+            }
+        }
+
         @Override
         public Object getBean() {
             return LogLinAxis.this;
@@ -91,7 +116,7 @@ public class LogLinAxis extends ValueAxis<Number> {
         }
     };
     public final boolean isLinForceZeroInRange() { return linForceZeroInRange.getValue(); }
-    public final void setLinForceZeroInRange(boolean value) { linForceZeroInRange.setValue(value); }
+    public final void setLinForceZeroInRange(boolean value) { linForceZeroInRange.set(value); }
     public final BooleanProperty linForceZeroInRangeProperty() { return linForceZeroInRange; }
 
     /** When true zero is always included in the visible range. This only has effect if auto-ranging is on. */
@@ -115,7 +140,7 @@ public class LogLinAxis extends ValueAxis<Number> {
         }
     };
     public final boolean isForceZeroInRange() { return forceZeroInRange.getValue(); }
-    public final void setForceZeroInRange(boolean value) { forceZeroInRange.setValue(value); }
+    public final void setForceZeroInRange(boolean value) { forceZeroInRange.set(value); }
     public final BooleanProperty forceZeroInRangeProperty() { return forceZeroInRange; }
     {
         forceZeroInRangeProperty().bind(new BooleanBinding() {
@@ -132,7 +157,15 @@ public class LogLinAxis extends ValueAxis<Number> {
     }
 
     /**  The value between each major tick mark in data units. This is automatically set if we are auto-ranging. */
-    private DoubleProperty logTickUnit = new DoublePropertyBase(10) {
+    private DoubleProperty logTickCount = new DoublePropertyBase(10) {
+        @Override
+        protected void invalidated() {
+            if(!isAutoRanging() && isUsingLogBase()) {
+                invalidateRange();
+                requestAxisLayout();
+            }
+        }
+
         @Override
         public Object getBean() {
             return LogLinAxis.this;
@@ -140,15 +173,22 @@ public class LogLinAxis extends ValueAxis<Number> {
 
         @Override
         public String getName() {
-            return "logTickUnit";
+            return "logTickCount";
         }
     };
-    public final double getLogTickUnit() { return logTickUnit.get(); }
-    public final void setLogTickUnit(double value) { logTickUnit.set(value); }
-    public final DoubleProperty logTickUnitProperty() { return logTickUnit; }
+    public final double getLogTickCount() { return logTickCount.get(); }
+    public final void setLogTickCount(double value) { logTickCount.set(value); }
+    public final DoubleProperty logTickCountProperty() { return logTickCount; }
 
     /**  The value between each major tick mark in data units. This is automatically set if we are auto-ranging. */
     private DoubleProperty linTickUnit = new DoublePropertyBase(10) {
+        @Override
+        protected void invalidated() {
+            if(!isAutoRanging() && isUsingLinBase()) {
+                invalidateRange();
+                requestAxisLayout();
+            }
+        }
         @Override
         public Object getBean() {
             return LogLinAxis.this;
@@ -165,6 +205,14 @@ public class LogLinAxis extends ValueAxis<Number> {
 
     /**  The value between each major tick mark in data units. This is automatically set if we are auto-ranging. */
     private DoubleProperty tickUnit = new StyleableDoubleProperty() {
+        @Override
+        protected void invalidated() {
+            if(!isAutoRanging()) {
+                invalidateRange();
+                requestAxisLayout();
+            }
+        }
+
         @Override
         public CssMetaData<LogLinAxis,Number> getCssMetaData() {
             return StyleableProperties.TICK_UNIT;
@@ -188,18 +236,25 @@ public class LogLinAxis extends ValueAxis<Number> {
             {
                 bind(logBaseProperty());
                 bind(linTickUnitProperty());
-                bind(logTickUnitProperty());
+                bind(logTickCountProperty());
             }
 
             @Override
             protected double computeValue() {
-                return isUsingLinBase()?linTickUnitProperty().get():logTickUnitProperty().get();
+                return isUsingLinBase()?linTickUnitProperty().get(): logTickCountProperty().get();
             }
         });
     }
 
     /** The value for the upper bound of this axis, ie max value. This is automatically set if auto ranging is on. */
     private DoubleProperty linUpperBound = new DoublePropertyBase(100) {
+        @Override
+        protected void invalidated() {
+            if(!isAutoRanging() && isUsingLinBase()) {
+                invalidateRange();
+                requestAxisLayout();
+            }
+        }
         @Override
         public Object getBean() {
             return LogLinAxis.this;
@@ -217,6 +272,13 @@ public class LogLinAxis extends ValueAxis<Number> {
     /** The value for the upper bound of this axis, ie max value. This is automatically set if auto ranging is on. */
     private DoubleProperty logUpperBound = new DoublePropertyBase(25000) {
         @Override
+        protected void invalidated() {
+            if(!isAutoRanging() && isUsingLogBase()) {
+                invalidateRange();
+                requestAxisLayout();
+            }
+        }
+        @Override
         public Object getBean() {
             return LogLinAxis.this;
         }
@@ -229,7 +291,7 @@ public class LogLinAxis extends ValueAxis<Number> {
         @Override
         public void set(double newValue) {
             if(newValue<=0 || Double.isInfinite(newValue) || Double.isNaN(newValue)){
-                newValue=Double.MIN_VALUE;
+                newValue=Double.MAX_VALUE;
             }
             super.set(newValue);
         }
@@ -255,6 +317,13 @@ public class LogLinAxis extends ValueAxis<Number> {
     /** The value for the lower bound of this axis, ie min value. This is automatically set if auto ranging is on. */
     private DoubleProperty linLowerBound = new DoublePropertyBase(0) {
         @Override
+        protected void invalidated() {
+            if(!isAutoRanging() && isUsingLinBase()) {
+                invalidateRange();
+                requestAxisLayout();
+            }
+        }
+        @Override
         public Object getBean() {
             return LogLinAxis.this;
         }
@@ -271,6 +340,13 @@ public class LogLinAxis extends ValueAxis<Number> {
     /** The value for the lower bound of this axis, ie min value. This is automatically set if auto ranging is on. */
     private DoubleProperty logLowerBound = new DoublePropertyBase(25) {
         @Override
+        protected void invalidated() {
+            if(!isAutoRanging() && isUsingLogBase()) {
+                invalidateRange();
+                requestAxisLayout();
+            }
+        }
+        @Override
         public Object getBean() {
             return LogLinAxis.this;
         }
@@ -283,7 +359,7 @@ public class LogLinAxis extends ValueAxis<Number> {
         @Override
         public void set(double newValue) {
             if(newValue<=0 || Double.isInfinite(newValue) || Double.isNaN(newValue)){
-                newValue=Double.MAX_VALUE;
+                newValue=Double.MIN_NORMAL;
             }
             super.set(newValue);
         }
@@ -310,12 +386,14 @@ public class LogLinAxis extends ValueAxis<Number> {
      * The number of minor tick divisions to be displayed between each major tick mark.
      * The number of actual minor tick marks will be one less than this.
      */
-    private IntegerProperty logMinorTickCount = new IntegerPropertyBase(5) {
-        @Override protected void invalidated() {
-            invalidateRange();
-            requestAxisLayout();
+    private IntegerProperty logMinorTickCount = new IntegerPropertyBase(10) {
+        @Override
+        protected void invalidated() {
+            if(!isAutoRanging() && isUsingLogBase()) {
+                invalidateRange();
+                requestAxisLayout();
+            }
         }
-
         @Override
         public Object getBean() {
             return LogLinAxis.this;
@@ -335,11 +413,13 @@ public class LogLinAxis extends ValueAxis<Number> {
      * The number of actual minor tick marks will be one less than this.
      */
     private IntegerProperty linMinorTickCount = new IntegerPropertyBase(5) {
-        @Override protected void invalidated() {
-            invalidateRange();
-            requestAxisLayout();
+        @Override
+        protected void invalidated() {
+            if(!isAutoRanging() && isUsingLinBase()) {
+                invalidateRange();
+                requestAxisLayout();
+            }
         }
-
         @Override
         public Object getBean() {
             return LogLinAxis.this;
@@ -368,33 +448,64 @@ public class LogLinAxis extends ValueAxis<Number> {
         });
     }
 
-    protected final DoubleProperty currentUpperBound = new SimpleDoubleProperty(this, "currentUpperBound");
+    //endregion
 
-    protected final DoubleProperty currentUpperLogBound = new SimpleDoubleProperty(this, "currentUpperBound");
-
-    protected final DoubleProperty currentLowerLogBound = new SimpleDoubleProperty(this, "currentUpperBound");
+    private final DoubleProperty currentUpperBound = new SimpleDoubleProperty(this, "currentUpperBound");
+    private final DoubleProperty currentUpperLogBound = new SimpleDoubleProperty(this, "currentUpperLogBound");
     {
-        logBase.addListener((observable, oldValue, newValue) -> {
-            animator.stop(currentAnimationID);
-            currentUpperBound.set(newValue.doubleValue());//todo fix x4
-            currentLowerBound.set(newValue.doubleValue());
-            currentUpperLogBound.set(Math.log10(newValue.doubleValue())/log10logBase);
-            currentLowerLogBound.set(Math.log10(newValue.doubleValue())/log10logBase);
-        });
-    }
-
-    protected final ReadOnlyDoubleWrapper deltaLog=new ReadOnlyDoubleWrapper();
-    {
-        deltaLog.bind(new DoubleBinding() {
+        currentUpperLogBound.bind(new DoubleBinding() {
             {
-                bind(currentLowerBound);
                 bind(currentUpperBound);
-                bind(logBase);
+                bind(logBaseProperty());
             }
 
             @Override
             protected double computeValue() {
-                return (Math.log10(currentUpperBound.get()) - Math.log10(currentLowerBound.get()))/log10logBase;
+                return Math.log10(currentUpperBound.get())/log10logBase.get();
+            }
+        });
+    }
+    private final DoubleProperty currentLowerLogBound = new SimpleDoubleProperty(this, "currentLowerLogBound");
+    {
+        currentLowerLogBound.bind(new DoubleBinding() {
+            {
+                bind(currentLowerBound);
+                bind(logBaseProperty());
+            }
+
+            @Override
+            protected double computeValue() {
+                return Math.log10(currentLowerBound.get())/log10logBase.get();
+            }
+        });
+    }
+
+    private double offset=0;
+    private final ReadOnlyDoubleWrapper logScale=new ReadOnlyDoubleWrapper(LogLinAxis.this,"logScale");
+    {
+        logScale.bind(new DoubleBinding() {
+            {
+                bind(widthProperty());
+                bind(heightProperty());
+                bind(currentLowerLogBound);
+                bind(currentUpperLogBound);
+                bind(sideProperty());
+            }
+
+            @Override
+            protected double computeValue() {
+                final Side side = getEffectiveSide();
+                final double upperBound=currentUpperLogBound.get();
+                final double lowerBound=currentLowerLogBound.get();
+                if (side.isVertical()) {
+                    final double length=getHeight();
+                    offset = length;
+                    return  ((upperBound-lowerBound) == 0) ? -length : -(length / (upperBound - lowerBound));
+                } else { // HORIZONTAL
+                    final double length=getWidth();
+                    offset = 0;
+                    return  ((upperBound-lowerBound) == 0) ? length : length / (upperBound - lowerBound);
+                }
             }
         });
     }
@@ -420,7 +531,6 @@ public class LogLinAxis extends ValueAxis<Number> {
         scaleProperty().addListener((observable, oldValue, newValue) -> scaleController.setRawValue(newValue.doubleValue()));
     }
 
-    //endregion
 
     //region -------------- CONSTRUCTORS -------------------------------------------------------------------------------------
 
@@ -489,6 +599,7 @@ public class LogLinAxis extends ValueAxis<Number> {
     @Override
     protected void layoutChildren() {
         if(!isAutoRanging()) {
+            setScale(calculateNewScale(getEffectiveSide().isVertical() ? getHeight() :getWidth(), getLowerBound(), getUpperBound()));
             currentUpperBound.set(getUpperBound());
         }
         super.layoutChildren();
@@ -511,9 +622,15 @@ public class LogLinAxis extends ValueAxis<Number> {
         currentFormatterProperty.set(formatter);
         final double oldLowerBound = getLowerBound();
         final double oldUpperBound = getUpperBound();
-        setLowerBound(lowerBound);
-        setUpperBound(upperBound);
-        setTickUnit(tickUnit);
+        if(isUsingLinBase()){
+            setLinLowerBound(lowerBound);
+            setLinUpperBound(upperBound);
+            setLinTickUnit(tickUnit);
+        }else {
+            setLogLowerBound(lowerBound);
+            setLogUpperBound(upperBound);
+            setLogTickCount(tickUnit);
+        }
         if(animate) {
             animator.stop(currentAnimationID);
             currentAnimationID = animator.animate(
@@ -531,7 +648,7 @@ public class LogLinAxis extends ValueAxis<Number> {
         } else {
             currentLowerBound.set(lowerBound);
             currentUpperBound.set(upperBound);
-            setScale(scale);
+            scaleController.set(scale);
         }
     }
 
@@ -575,35 +692,17 @@ public class LogLinAxis extends ValueAxis<Number> {
                 }
             }else {//todo maybe for <1 log base
                 //using amount of ticks per 1 whole log increase
-                final double logUpperBound=Math.log(upperBound)/log10logBase;
-                final double logLowerBound=Math.log(lowerBound)/log10logBase;
+                final double logUpperBound=Math.log10(upperBound)/log10logBase.get();
+                final double logLowerBound=Math.log10(lowerBound)/log10logBase.get();
                 final int tickUnitInt=(int) Math.ceil(tickUnit);
                 if (((logUpperBound - logLowerBound) * tickUnitInt) > 2000) {
                     // This is a ridiculous amount of major tick marks, something has probably gone wrong
                     System.err.println("Warning we tried to create more than 2000 major tick marks on a LogLinAxis. " +
                             "Lower Bound=" + lowerBound + ", Upper Bound=" + upperBound + ", Tick Unit=" + tickUnit);
                 } else {
-                    final double[] subDiv=new double[tickUnitInt];
-                    subDiv[0]=1;
-                    for(int i=1;i<tickUnitInt;i++){
-                        subDiv[i]=i/logBase.get();
-                    }
-
                     final int logLower=(int)Math.floor(logLowerBound);
                     final int logUpper=(int)Math.ceil(logUpperBound);
-                    adding:
-                    for(int log=logLower;log<=logUpper;log++) {
-                        final double logTickBase=inverseLog(log);
-                        for(int i=0;i<tickUnitInt;i++){
-                            final double tickValue=logTickBase*subDiv[i];
-                            if(tickValue>lowerBound) {
-                                tickValues.add(tickValue);
-                                if(tickValue>upperBound){
-                                    break adding;
-                                }
-                            }
-                        }
-                    }
+                    calculateTicks(tickValues, lowerBound, upperBound, tickUnitInt, logLower, logUpper);
                 }
             }
             tickValues.add(upperBound);
@@ -621,7 +720,8 @@ public class LogLinAxis extends ValueAxis<Number> {
         final List<Number> minorTickMarks = new ArrayList<>();
         final double lowerBound = getLowerBound();
         final double upperBound = getUpperBound();
-        if (tickUnit > 0) {
+        final int minorTickCount = getMinorTickCount();
+        if (tickUnit > 0 && minorTickCount>1) {
             if(isUsingLinBase()) {
                 final double minorUnit = tickUnit/Math.max(1, getMinorTickCount());
                 if (((upperBound - lowerBound) / minorUnit) > 10000) {
@@ -650,42 +750,42 @@ public class LogLinAxis extends ValueAxis<Number> {
                         minorTickMarks.add(minor);
                     }
                 }
-            }else if(getMinorTickCount()>0){
-                final int minorTickCount = getMinorTickCount();
-                final double logUpperBound=Math.log(upperBound)/log10logBase;
-                final double logLowerBound=Math.log(lowerBound)/log10logBase;
+            }else{
+                final double logUpperBound=Math.log10(upperBound)/log10logBase.get();
+                final double logLowerBound=Math.log10(lowerBound)/log10logBase.get();
                 final int tickUnitInt=(int) Math.ceil(tickUnit);
                 final int minorTickUnitInt=tickUnitInt*minorTickCount;
-                if (((logUpperBound - logLowerBound) * tickUnit * minorTickCount) > 10000) {
+                if (((logUpperBound - logLowerBound) * tickUnit * (minorTickCount-1)) > 10000) {
                     // This is a ridiculous amount of major tick marks, something has probably gone wrong
                     System.err.println("Warning we tried to create more than 10000 minor tick marks on a LogLinAxis. " +
                             "Lower Bound=" + getLowerBound() + ", Upper Bound=" + getUpperBound() + ", Tick Unit=" + tickUnit+ ", Minor Tick Count=" + minorTickCount);
                 } else {
-                    final double[] subDiv=new double[minorTickUnitInt];
-                    subDiv[0]=1;
-                    for(int i=1;i<minorTickUnitInt;i++){
-                        subDiv[i]=i/logBase.get();
-                    }
-
-                    final int logLower=(int)Math.floor(logLowerBound);
-                    final int logUpper=(int)Math.ceil(logUpperBound);
-                    adding:
-                    for(int log=logLower;log<=logUpper;log++) {
-                        final double logTickBase=inverseLog(log);
-                        for(int i=0;i<minorTickUnitInt;i++){
-                            final double tickValue=logTickBase*subDiv[i];
-                            if(i%tickUnitInt!=0 && tickValue>lowerBound) {
-                                minorTickMarks.add(tickValue);
-                                if(tickValue>upperBound){
-                                    break adding;
-                                }
-                            }
-                        }
-                    }
+                    final int logBaseLower=(int)Math.floor(logLowerBound);
+                    final int logBaseUpper=(int)Math.ceil(logUpperBound);
+                    calculateTicks(minorTickMarks, lowerBound, upperBound, minorTickUnitInt, logBaseLower, logBaseUpper);
                 }
             }
         }
         return minorTickMarks;
+    }
+
+    private void calculateTicks(List<Number> ticks, double lowerBound, double upperBound, int countPerBase, int logBaseLower, int logBaseUpper) {
+        final double[] subDiv=new double[countPerBase];
+        for(int i=0;i<countPerBase;i++){
+            subDiv[i]=(i+1)*logBase.get()/countPerBase;
+        }
+        for(int log=logBaseLower;log<=logBaseUpper;log++) {
+            final double logTickBase=Math.pow(logBase.get(),log);
+            for(int i=0;i<countPerBase;i++){
+                final double tickValue=logTickBase*subDiv[i];
+                if(tickValue>lowerBound) {
+                    ticks.add(tickValue);
+                    if(tickValue>upperBound){
+                        return;
+                    }
+                }
+            }
+        }
     }
 
     /**
@@ -736,10 +836,10 @@ public class LogLinAxis extends ValueAxis<Number> {
      */
     @Override protected Object autoRange(double minValue, double maxValue, double length, double labelSize) {
         if(isUsingLogBase()){
-            final double minRounded=Math.pow(logBase.get(),Math.floor(Math.log(minValue)/log10logBase));
-            final double maxRounded=Math.pow(logBase.get(),Math.ceil(Math.log(maxValue)/log10logBase));
+            final double minRounded=Math.pow(logBase.get(),Math.floor(Math.log10(minValue)/log10logBase.get()));
+            final double maxRounded=Math.pow(logBase.get(),Math.ceil(Math.log10(maxValue)/log10logBase.get()));
 
-            return new Object[]{minRounded, maxRounded, logBase, getScale(), "0.00000000"};
+            return new Object[]{minRounded, maxRounded, logBase.get(), getScale(), "0.00000000"};
         }
         final Side side = getEffectiveSide();
         // check if we need to force zero into range
@@ -860,7 +960,7 @@ public class LogLinAxis extends ValueAxis<Number> {
 
                     @Override
                     public boolean isSettable(LogLinAxis n) {
-                        return n.logTickUnit == null || !n.logTickUnit.isBound();
+                        return n.logTickCount == null || !n.logTickCount.isBound();
                     }
 
                     @Override
@@ -989,13 +1089,7 @@ public class LogLinAxis extends ValueAxis<Number> {
             //toRealValue(((displayPosition-getOffset()) / getScale()) + currentLowerBound.get());
             return super.getValueForDisplay(displayPosition);
         }else {
-            //todo
-            if (getSide().isVertical()) {
-                return toRealValue(Math.pow(logBase.get(), (displayPosition - getHeight()) / (getHeight() * delta.get()) + currentLowerBound.get()));
-            } else {
-                return toRealValue(Math.pow(logBase.get(), (((displayPosition / getWidth()) * delta.get()) + currentLowerBound.get())));
-            }
-
+            return toRealValue(Math.pow(logBase.get(), (displayPosition - offset) / logScale.get() + currentLowerLogBound.get()));
         }
     }
 
@@ -1006,22 +1100,7 @@ public class LogLinAxis extends ValueAxis<Number> {
             //getOffset() + ((value.doubleValue() - currentLowerBound.get()) * getScale());
             return super.getDisplayPosition(value);
         }else {
-            //todo
-            double deltaV = Math.log10(value.doubleValue())/log10logBase - logLowerBound.get();
-            if (getSide().isVertical()) {
-                return (1D - ((deltaV) / delta.get())) * getHeight() + getOffset();
-            } else {
-                return ((deltaV) / delta.get()) * getWidth() + getOffset();
-            }
-
+            return offset + Math.log10(value.doubleValue()-currentLowerLogBound.get())/log10logBase.get()*logScale.get();
         }
-    }
-
-    private double computeLog(double linValue){
-        return Math.log10(linValue)/ log10logBase;
-    }
-
-    private double inverseLog(double logValue){
-        return Math.pow(logBase.get(),logValue);
     }
 }
