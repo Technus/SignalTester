@@ -44,19 +44,21 @@ public class Logtest {
         yMajor.setValueFactory(new SpinnerValueFactory.DoubleSpinnerValueFactory(0,Double.MAX_VALUE,10));
         yMax.setValueFactory(new SpinnerValueFactory.DoubleSpinnerValueFactory(Double.MIN_VALUE,Double.MAX_VALUE,1000));
 
+        xAxis.setAutoRanging(false);
+        xAuto.selectedProperty().bindBidirectional(xAxis.autoRangingProperty());
         xMin.getValueFactory().valueProperty().bindBidirectional(xAxis.logLowerBoundProperty().asObject());
         xMax.getValueFactory().valueProperty().bindBidirectional(xAxis.logUpperBoundProperty().asObject());
         xMinor.getValueFactory().valueProperty().bindBidirectional(xAxis.logMinorTickCountProperty().asObject());
         xMajor.getValueFactory().valueProperty().bindBidirectional(xAxis.logTickCountProperty().asObject());
         xBase.getValueFactory().valueProperty().bindBidirectional(xAxis.logBaseProperty().asObject());
-        xAuto.selectedProperty().bindBidirectional(xAxis.autoRangingProperty());
 
+        yAxis.setAutoRanging(false);
+        yAuto.selectedProperty().bindBidirectional(yAxis.autoRangingProperty());
         yMin.getValueFactory().valueProperty().bindBidirectional(yAxis.logLowerBoundProperty().asObject());
         yMax.getValueFactory().valueProperty().bindBidirectional(yAxis.logUpperBoundProperty().asObject());
         yMinor.getValueFactory().valueProperty().bindBidirectional(yAxis.logMinorTickCountProperty().asObject());
         yMajor.getValueFactory().valueProperty().bindBidirectional(yAxis.logTickCountProperty().asObject());
         yBase.getValueFactory().valueProperty().bindBidirectional(yAxis.logBaseProperty().asObject());
-        yAuto.selectedProperty().bindBidirectional(yAxis.autoRangingProperty());
 
         xCol.setCellValueFactory(new PropertyValueFactory<>("XValue"));
         xCol.setCellFactory(TextFieldTableCell.forTableColumn(new DoubleStringConverter()));

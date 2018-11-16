@@ -33,16 +33,6 @@ public class LogLinAxis extends ValueAxis<Number> {
     private final DefaultFormatter defaultFormatter = new DefaultFormatter(this);
 
     //region -------------- PUBLIC PROPERTIES --------------------------------------------------------------------------------
-    {
-        widthProperty().addListener(observable -> {
-            invalidateRange();
-            requestAxisLayout();
-        });
-        heightProperty().addListener(observable -> {
-            invalidateRange();
-            requestAxisLayout();
-        });
-    }
 
     /** Base of the logarithm, set to 1,<=0,-1, for linear */
     private DoubleProperty logBase = new DoublePropertyBase(10) {
@@ -98,14 +88,6 @@ public class LogLinAxis extends ValueAxis<Number> {
     /** When true zero is always included in the visible range. This only has effect if auto-ranging is on. */
     private BooleanProperty linForceZeroInRange = new BooleanPropertyBase(true) {
         @Override
-        protected void invalidated() {
-            if(isUsingLinBase() && isAutoRanging()){
-                requestAxisLayout();
-                invalidateRange();
-            }
-        }
-
-        @Override
         public Object getBean() {
             return LogLinAxis.this;
         }
@@ -145,8 +127,7 @@ public class LogLinAxis extends ValueAxis<Number> {
     {
         forceZeroInRangeProperty().bind(new BooleanBinding() {
             {
-                bind(logBaseProperty());
-                bind(linForceZeroInRangeProperty());
+                bind(logBaseProperty(),linForceZeroInRangeProperty());
             }
 
             @Override
@@ -158,14 +139,6 @@ public class LogLinAxis extends ValueAxis<Number> {
 
     /**  The value between each major tick mark in data units. This is automatically set if we are auto-ranging. */
     private DoubleProperty logTickCount = new DoublePropertyBase(10) {
-        @Override
-        protected void invalidated() {
-            if(!isAutoRanging() && isUsingLogBase()) {
-                invalidateRange();
-                requestAxisLayout();
-            }
-        }
-
         @Override
         public Object getBean() {
             return LogLinAxis.this;
@@ -182,13 +155,6 @@ public class LogLinAxis extends ValueAxis<Number> {
 
     /**  The value between each major tick mark in data units. This is automatically set if we are auto-ranging. */
     private DoubleProperty linTickUnit = new DoublePropertyBase(10) {
-        @Override
-        protected void invalidated() {
-            if(!isAutoRanging() && isUsingLinBase()) {
-                invalidateRange();
-                requestAxisLayout();
-            }
-        }
         @Override
         public Object getBean() {
             return LogLinAxis.this;
@@ -234,9 +200,7 @@ public class LogLinAxis extends ValueAxis<Number> {
     {
         tickUnitProperty().bind(new DoubleBinding() {
             {
-                bind(logBaseProperty());
-                bind(linTickUnitProperty());
-                bind(logTickCountProperty());
+                bind(logBaseProperty(),linTickUnitProperty(),logTickCountProperty());
             }
 
             @Override
@@ -248,13 +212,6 @@ public class LogLinAxis extends ValueAxis<Number> {
 
     /** The value for the upper bound of this axis, ie max value. This is automatically set if auto ranging is on. */
     private DoubleProperty linUpperBound = new DoublePropertyBase(100) {
-        @Override
-        protected void invalidated() {
-            if(!isAutoRanging() && isUsingLinBase()) {
-                invalidateRange();
-                requestAxisLayout();
-            }
-        }
         @Override
         public Object getBean() {
             return LogLinAxis.this;
@@ -271,13 +228,6 @@ public class LogLinAxis extends ValueAxis<Number> {
 
     /** The value for the upper bound of this axis, ie max value. This is automatically set if auto ranging is on. */
     private DoubleProperty logUpperBound = new DoublePropertyBase(25000) {
-        @Override
-        protected void invalidated() {
-            if(!isAutoRanging() && isUsingLogBase()) {
-                invalidateRange();
-                requestAxisLayout();
-            }
-        }
         @Override
         public Object getBean() {
             return LogLinAxis.this;
@@ -302,9 +252,7 @@ public class LogLinAxis extends ValueAxis<Number> {
     {
         upperBoundProperty().bind(new DoubleBinding() {
             {
-                bind(logBaseProperty());
-                bind(linUpperBoundProperty());
-                bind(logUpperBoundProperty());
+                bind(logBaseProperty(),linUpperBoundProperty(),logUpperBoundProperty());
             }
 
             @Override
@@ -316,13 +264,6 @@ public class LogLinAxis extends ValueAxis<Number> {
 
     /** The value for the lower bound of this axis, ie min value. This is automatically set if auto ranging is on. */
     private DoubleProperty linLowerBound = new DoublePropertyBase(0) {
-        @Override
-        protected void invalidated() {
-            if(!isAutoRanging() && isUsingLinBase()) {
-                invalidateRange();
-                requestAxisLayout();
-            }
-        }
         @Override
         public Object getBean() {
             return LogLinAxis.this;
@@ -339,13 +280,6 @@ public class LogLinAxis extends ValueAxis<Number> {
 
     /** The value for the lower bound of this axis, ie min value. This is automatically set if auto ranging is on. */
     private DoubleProperty logLowerBound = new DoublePropertyBase(25) {
-        @Override
-        protected void invalidated() {
-            if(!isAutoRanging() && isUsingLogBase()) {
-                invalidateRange();
-                requestAxisLayout();
-            }
-        }
         @Override
         public Object getBean() {
             return LogLinAxis.this;
@@ -370,9 +304,7 @@ public class LogLinAxis extends ValueAxis<Number> {
     {
         lowerBoundProperty().bind(new DoubleBinding() {
             {
-                bind(logBaseProperty());
-                bind(linLowerBoundProperty());
-                bind(logLowerBoundProperty());
+                bind(logBaseProperty(),linLowerBoundProperty(),logLowerBoundProperty());
             }
 
             @Override
@@ -388,20 +320,13 @@ public class LogLinAxis extends ValueAxis<Number> {
      */
     private IntegerProperty logMinorTickCount = new IntegerPropertyBase(10) {
         @Override
-        protected void invalidated() {
-            if(!isAutoRanging() && isUsingLogBase()) {
-                invalidateRange();
-                requestAxisLayout();
-            }
-        }
-        @Override
         public Object getBean() {
             return LogLinAxis.this;
         }
 
         @Override
         public String getName() {
-            return "minorTickCount";
+            return "logMinorTickCount";
         }
     };
     public final int getLogMinorTickCount() { return logMinorTickCount.get(); }
@@ -412,14 +337,7 @@ public class LogLinAxis extends ValueAxis<Number> {
      * The number of minor tick divisions to be displayed between each major tick mark.
      * The number of actual minor tick marks will be one less than this.
      */
-    private IntegerProperty linMinorTickCount = new IntegerPropertyBase(5) {
-        @Override
-        protected void invalidated() {
-            if(!isAutoRanging() && isUsingLinBase()) {
-                invalidateRange();
-                requestAxisLayout();
-            }
-        }
+    private IntegerProperty linMinorTickCount = new IntegerPropertyBase(10) {
         @Override
         public Object getBean() {
             return LogLinAxis.this;
@@ -427,7 +345,7 @@ public class LogLinAxis extends ValueAxis<Number> {
 
         @Override
         public String getName() {
-            return "minorTickCount";
+            return "linMinorTickCount";
         }
     };
     public final int getLinMinorTickCount() { return linMinorTickCount.get(); }
@@ -436,9 +354,7 @@ public class LogLinAxis extends ValueAxis<Number> {
     {
         minorTickCountProperty().bind(new IntegerBinding() {
             {
-                bind(logBaseProperty());
-                bind(logMinorTickCountProperty());
-                bind(linMinorTickCountProperty());
+                bind(logBaseProperty(),logMinorTickCountProperty(),linMinorTickCountProperty());
             }
 
             @Override
@@ -455,8 +371,7 @@ public class LogLinAxis extends ValueAxis<Number> {
     {
         currentUpperLogBound.bind(new DoubleBinding() {
             {
-                bind(currentUpperBound);
-                bind(logBaseProperty());
+                bind(currentUpperBound,logBaseProperty());
             }
 
             @Override
@@ -469,8 +384,7 @@ public class LogLinAxis extends ValueAxis<Number> {
     {
         currentLowerLogBound.bind(new DoubleBinding() {
             {
-                bind(currentLowerBound);
-                bind(logBaseProperty());
+                bind(currentLowerBound,logBaseProperty());
             }
 
             @Override
@@ -485,11 +399,7 @@ public class LogLinAxis extends ValueAxis<Number> {
     {
         logScale.bind(new DoubleBinding() {
             {
-                bind(widthProperty());
-                bind(heightProperty());
-                bind(currentLowerLogBound);
-                bind(currentUpperLogBound);
-                bind(sideProperty());
+                bind(widthProperty(),heightProperty(),currentLowerLogBound,currentUpperLogBound,sideProperty());
             }
 
             @Override
@@ -601,6 +511,7 @@ public class LogLinAxis extends ValueAxis<Number> {
         if(!isAutoRanging()) {
             setScale(calculateNewScale(getEffectiveSide().isVertical() ? getHeight() :getWidth(), getLowerBound(), getUpperBound()));
             currentUpperBound.set(getUpperBound());
+
         }
         super.layoutChildren();
     }
