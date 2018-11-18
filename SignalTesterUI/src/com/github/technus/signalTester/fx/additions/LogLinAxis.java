@@ -29,7 +29,7 @@ import java.util.Collections;
 import java.util.List;
 
 public class LogLinAxis extends ValueAxis<Number> {
-    private double EPSILON= Math.pow(10,-12);
+    private double EPSILON= Math.pow(10,-14);
     private Object currentAnimationID;
     private final ChartLayoutAnimator animator = new ChartLayoutAnimator(this);
     private final StringProperty currentFormatterProperty = new SimpleStringProperty(this, "currentFormatter", "");
