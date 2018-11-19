@@ -5,6 +5,7 @@ import com.sun.javafx.css.converters.SizeConverter;
 import javafx.animation.KeyFrame;
 import javafx.animation.KeyValue;
 import javafx.animation.Timeline;
+import javafx.beans.InvalidationListener;
 import javafx.beans.binding.BooleanBinding;
 import javafx.beans.binding.DoubleBinding;
 import javafx.beans.binding.IntegerBinding;
@@ -29,7 +30,7 @@ import java.util.Collections;
 import java.util.List;
 
 public class LogLinAxis extends ValueAxis<Number> {
-    private double EPSILON= Math.pow(10,-14);
+    private static double EPSILON= Math.pow(10,-14);
     private Object currentAnimationID;
     private final ChartLayoutAnimator animator = new ChartLayoutAnimator(this);
     private final StringProperty currentFormatterProperty = new SimpleStringProperty(this, "currentFormatter", "");
@@ -41,9 +42,6 @@ public class LogLinAxis extends ValueAxis<Number> {
     private DoubleProperty logBase = new DoublePropertyBase(10) {
         @Override
         protected void invalidated() {
-            //invalidate animation
-            animator.stop(currentAnimationID);
-
             invalidateRange();
             requestAxisLayout();
         }
@@ -397,22 +395,24 @@ public class LogLinAxis extends ValueAxis<Number> {
     private double offset=0;
     private final ReadOnlyDoubleWrapper logScale=new ReadOnlyDoubleWrapper(LogLinAxis.this,"logScale");
     {
-        ChangeListener listener= (observable, oldValue, newValue) -> {
-            final Side side = getEffectiveSide();
-            final double upperBound=currentUpperLogBound.get();
-            final double lowerBound=currentLowerLogBound.get();
-            if (side.isVertical()) {
-                final double length=getHeight();
-                offset = length;
-                final double scale=((upperBound-lowerBound) == 0) ? -length : -(length / (upperBound - lowerBound));
-                setScale(scale);
-                logScale.set(scale);
-            } else { // HORIZONTAL
-                final double length=getWidth();
-                offset = 0;
-                final double scale=((upperBound-lowerBound) == 0) ? length : length / (upperBound - lowerBound);
-                setScale(scale);
-                logScale.set(scale);
+        InvalidationListener listener= (observable) -> {
+            if(isUsingLogBase()) {
+                final Side side = getEffectiveSide();
+                final double upperBound = currentUpperLogBound.get();
+                final double lowerBound = currentLowerLogBound.get();
+                if (side.isVertical()) {
+                    final double length = getHeight();
+                    offset = length;
+                    final double scale = ((upperBound - lowerBound) == 0) ? -length : -(length / (upperBound - lowerBound));
+                    setScale(scale);
+                    logScale.set(scale);
+                } else { // HORIZONTAL
+                    final double length = getWidth();
+                    offset = 0;
+                    final double scale = ((upperBound - lowerBound) == 0) ? length : length / (upperBound - lowerBound);
+                    setScale(scale);
+                    logScale.set(scale);
+                }
             }
         };
         widthProperty().addListener(listener);
@@ -480,6 +480,49 @@ public class LogLinAxis extends ValueAxis<Number> {
         setTickUnit(tickUnit);
         setLogTickCount(tickUnit);
         setLabel(axisLabel);
+    }
+
+
+    private static double EPSILON_FORMAT=Math.pow(10,-6);
+
+    {
+        setTickLabelFormatter(new StringConverter<Number>() {
+            DecimalFormat format = new DecimalFormat("0.00E0");
+            DecimalFormat shorter=new DecimalFormat("");
+            {
+                DecimalFormatSymbols decimalFormatSymbols=new DecimalFormatSymbols();
+                decimalFormatSymbols.setGroupingSeparator(' ');
+
+                format.setMaximumFractionDigits(3);
+                format.setMinimumIntegerDigits(1);
+                format.setRoundingMode(RoundingMode.HALF_UP);
+                format.setDecimalFormatSymbols(decimalFormatSymbols);
+
+                shorter.setMaximumFractionDigits(5);
+                shorter.setMinimumIntegerDigits(1);
+                shorter.setRoundingMode(RoundingMode.HALF_UP);
+                shorter.setDecimalFormatSymbols(decimalFormatSymbols);
+            }
+
+            @Override
+            public String toString(Number object) {
+                if((object.intValue()<object.doubleValue()+EPSILON_FORMAT && object.intValue()>object.doubleValue()-EPSILON_FORMAT &&
+                        object.doubleValue()<=100_000 && object.doubleValue()>=-100_000) ||
+                        (object.doubleValue()<=1 && object.doubleValue()>=-1 && (object.doubleValue()<-0.001 || object.doubleValue()>0.001))){
+                    return shorter.format(object);
+                }
+                return format.format(object);
+            }
+
+            @Override
+            public Number fromString(String string) {
+                try{
+                    return (Number) format.parseObject(string);
+                }catch (ParseException e){
+                    return Double.parseDouble(string);
+                }
+            }
+        });
     }
 
     //endregion
@@ -1007,7 +1050,12 @@ public class LogLinAxis extends ValueAxis<Number> {
             if(prefix!=null){
                 builder.append(prefix);
             }
-            builder.append(formatter.format(object));
+            String number=formatter.format(object);
+            //if(object.doubleValue()<3 || number.length()>6){
+            //    builder.append();
+            //}else {
+                builder.append(number);
+            //}
             if(suffix!=null){
                 builder.append(suffix);
             }

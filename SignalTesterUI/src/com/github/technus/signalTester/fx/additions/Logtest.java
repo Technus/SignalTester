@@ -95,7 +95,7 @@ public class Logtest {
 
         for(int i=0;i<20;i++){
             addPoint();
-            series1.getData().add(new XYChart.Data<>(1d*i+1,1d*i+1));
+            series1.getData().add(new XYChart.Data<>((1d*i+1)/100,(1d*i+1)/10000));
         }
 
         chart.setData(seriesList);
