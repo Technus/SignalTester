@@ -508,7 +508,8 @@ public class LogLinAxis extends ValueAxis<Number> {
             public String toString(Number object) {
                 if((object.intValue()<object.doubleValue()+EPSILON_FORMAT && object.intValue()>object.doubleValue()-EPSILON_FORMAT &&
                         object.doubleValue()<=100_000 && object.doubleValue()>=-100_000) ||
-                        (object.doubleValue()<=1 && object.doubleValue()>=-1 && (object.doubleValue()<-0.001 || object.doubleValue()>0.001))){
+                        (object.doubleValue()<=1 && object.doubleValue()>=-1 &&
+                                (object.doubleValue()-EPSILON_FORMAT<=-0.001 || object.doubleValue()+EPSILON_FORMAT>=0.001))){
                     return shorter.format(object);
                 }
                 return format.format(object);
