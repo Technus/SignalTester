@@ -487,7 +487,7 @@ public class LogLinAxis extends ValueAxis<Number> {
 
     {
         setTickLabelFormatter(new StringConverter<Number>() {
-            DecimalFormat format = new DecimalFormat("0.00E0");
+            DecimalFormat format = new DecimalFormat("0.0E0");
             DecimalFormat shorter=new DecimalFormat("");
             {
                 DecimalFormatSymbols decimalFormatSymbols=new DecimalFormatSymbols();
