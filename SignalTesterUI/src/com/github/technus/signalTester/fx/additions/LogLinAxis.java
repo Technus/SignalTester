@@ -524,6 +524,7 @@ public class LogLinAxis extends ValueAxis<Number> {
                 }
             }
         });
+        setMinorTickLength(4);
     }
 
     //endregion
@@ -563,8 +564,14 @@ public class LogLinAxis extends ValueAxis<Number> {
         if(!isAutoRanging()) {
             currentUpperBound.set(getUpperBound());
         }
+        double minorTickLength = Math.max(0, getMinorTickLength());
+        final Side side = getEffectiveSide();
+        final double length = side.isVertical() ? getHeight() :getWidth() ;
+        if (minorTickLength > 0 && length > 2 * getTickMarks().size()) {
+            doHack=true;
+        }
         super.layoutChildren();
-
+        doHack=false;
     }
 
     /**
@@ -643,13 +650,14 @@ public class LogLinAxis extends ValueAxis<Number> {
      * @param range A range object returned from autoRange()
      * @return A list of tick marks that fit along the axis if it was the given length
      */
+    private final ArrayList<Number> tickValues=new ArrayList<>();
     @Override protected List<Number> calculateTickValues(double length, Object range) {
         final Object[] rangeProps = (Object[]) range;
         final double lowerBound = (Double)rangeProps[0];
         final double upperBound = (Double)rangeProps[1];
         final double tickUnit = (Double)rangeProps[2];
 
-        List<Number> tickValues = new ArrayList<>();
+        tickValues.clear();
         if (lowerBound == upperBound) {
             tickValues.add(lowerBound);
         } else if (tickUnit <= 0) {
@@ -699,8 +707,21 @@ public class LogLinAxis extends ValueAxis<Number> {
      *
      * @return List of data values where to draw minor tick marks
      */
+    private volatile boolean doHack=false;
+    private class MinorTicksList extends ArrayList<Number>{
+        @Override
+        public int size() {
+            if(doHack){
+                doHack=false;
+                return 1;
+            }
+            return super.size();
+        }
+    }
+
+    private final MinorTicksList minorTickMarks=new MinorTicksList();
     protected List<Number> calculateMinorTickMarks() {
-        final List<Number> minorTickMarks = new ArrayList<>();
+        minorTickMarks.clear();
         final double lowerBound = getLowerBound();
         final double upperBound = getUpperBound();
         final double tickUnit = getTickUnit();
