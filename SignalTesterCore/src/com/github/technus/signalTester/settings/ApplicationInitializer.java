@@ -6,12 +6,14 @@ import org.bson.codecs.pojo.annotations.BsonCreator;
 import org.bson.codecs.pojo.annotations.BsonId;
 import org.bson.codecs.pojo.annotations.BsonProperty;
 
+import java.io.File;
 import java.time.Instant;
 
 public class ApplicationInitializer implements ITimedModification {
     @BsonId
     private final String id;
     private final String localFilesPath;
+    private final String pluginsPath;
     private final ConnectionConfiguration remote;
     private final String configurationName;
     private final String definitionName;
@@ -25,6 +27,7 @@ public class ApplicationInitializer implements ITimedModification {
     public ApplicationInitializer(boolean usingOldTimestamp){
         id="defaultInitializer";
         localFilesPath=".";
+        pluginsPath="."+ File.separator+"plugins";
         remote=new ConnectionConfiguration("localhost","tecAppsRemote");
         configurationName="defaultConfiguration";
         definitionName="defaultDefinition";
@@ -36,6 +39,7 @@ public class ApplicationInitializer implements ITimedModification {
     public ApplicationInitializer(
             @BsonId String id,
             @BsonProperty("localFilesPath") String localFilesPath,
+            @BsonProperty("pluginsPath") String pluginsPath,
             @BsonProperty("remote") ConnectionConfiguration remote,
             @BsonProperty("configurationName") String configurationName,
             @BsonProperty("definitionName") String definitionName,
@@ -43,6 +47,7 @@ public class ApplicationInitializer implements ITimedModification {
             @BsonProperty("timestamp") Instant timestamp) {
         this.id = id;
         this.localFilesPath = localFilesPath;
+        this.pluginsPath = pluginsPath;
         this.remote = remote;
         this.configurationName = configurationName;
         this.definitionName = definitionName;
@@ -56,6 +61,10 @@ public class ApplicationInitializer implements ITimedModification {
 
     public String getLocalFilesPath() {
         return localFilesPath;
+    }
+
+    public String getPluginsPath() {
+        return pluginsPath;
     }
 
     public ConnectionConfiguration getRemote() {
@@ -76,6 +85,6 @@ public class ApplicationInitializer implements ITimedModification {
 
     @Override
     public Instant getTimestamp() {
-        return null;
+        return timestamp;
     }
 }

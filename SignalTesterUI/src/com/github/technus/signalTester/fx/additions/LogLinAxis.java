@@ -39,7 +39,7 @@ public class LogLinAxis extends ValueAxis<Number> {
     //region -------------- PUBLIC PROPERTIES --------------------------------------------------------------------------------
 
     /** Base of the logarithm, set to 1,<=0,-1, for linear */
-    private DoubleProperty logBase = new DoublePropertyBase(10) {
+    private DoubleProperty logBase = new DoublePropertyBase(-10) {
         @Override
         protected void invalidated() {
             invalidateRange();
@@ -708,7 +708,7 @@ public class LogLinAxis extends ValueAxis<Number> {
      * @return List of data values where to draw minor tick marks
      */
     private volatile boolean doHack=false;
-    private class MinorTicksList extends ArrayList<Number>{
+    private final ArrayList<Number> minorTickMarks=new ArrayList<Number>(){
         @Override
         public int size() {
             if(doHack){
@@ -717,9 +717,7 @@ public class LogLinAxis extends ValueAxis<Number> {
             }
             return super.size();
         }
-    }
-
-    private final MinorTicksList minorTickMarks=new MinorTicksList();
+    };
     protected List<Number> calculateMinorTickMarks() {
         minorTickMarks.clear();
         final double lowerBound = getLowerBound();

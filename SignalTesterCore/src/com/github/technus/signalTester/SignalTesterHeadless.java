@@ -9,6 +9,7 @@ import com.github.technus.dbAdditions.mongoDB.pojo.ThrowableLog;
 import com.github.technus.dbAdditions.mongoDB.pojo.UserNT;
 import com.github.technus.dbAdditions.utility.Container;
 import com.github.technus.dbAdditions.utility.IContainer;
+import com.github.technus.signalTester.plugin.PluginLoader;
 import com.github.technus.signalTester.settings.ApplicationConfiguration;
 import com.github.technus.signalTester.settings.ApplicationInitializer;
 import com.github.technus.signalTester.test.TestDefinition;
@@ -25,6 +26,7 @@ import org.bson.types.ObjectId;
 
 import java.io.File;
 import java.io.IOException;
+import java.net.MalformedURLException;
 import java.nio.file.Files;
 import java.util.List;
 import java.util.Locale;
@@ -45,8 +47,9 @@ public class SignalTesterHeadless implements AutoCloseable{
     private MongoCollection<TestResult> resultCollectionLocal;
     private MongoCollection<TestResult> resultCollectionRemote;
 
-    private IContainer<ApplicationConfiguration> configurationContainer;
-    private IContainer<TestDefinition> definitionContainer;
+    private IContainer<ApplicationConfiguration> configurationContainer;//todo observable value?
+    private IContainer<TestDefinition> definitionContainer;//todo observable value?
+    private PluginLoader pluginLoader;
 
     public static void main(String... args) {
         SignalTesterHeadless signalTesterHeadless=new SignalTesterHeadless(args);
@@ -158,12 +161,23 @@ public class SignalTesterHeadless implements AutoCloseable{
             Locale.setDefault(Locale.US);
         }
 
-        throwableCollectionLocal = new FileSystemCollection<>(new File(applicationInitializer.getLocalFilesPath()),
+        File localThrowableFolder=new File(applicationInitializer.getLocalFilesPath()).getAbsoluteFile();
+        throwableCollectionLocal = new FileSystemCollection<>(localThrowableFolder,
                 new MongoNamespace("tecAppsLocal", ThrowableLog.class.getSimpleName()), ThrowableLog.class)
                 .withCodecRegistry(THROWABLE_LOG_COLLECTION_CODECS);
-        resultCollectionLocal = new FileSystemCollection<>(new File(applicationInitializer.getLocalFilesPath()),
+        File localResultFolder=new File(applicationInitializer.getLocalFilesPath()).getAbsoluteFile();
+        resultCollectionLocal = new FileSystemCollection<>(localResultFolder,
                 new MongoNamespace("tecAppsLocal", TestResult.class.getSimpleName()), TestResult.class)
                 .withCodecRegistry(resultCodecs);
+
+        pluginLoader = new PluginLoader(this);
+        try {
+            File pluginsPath=new File(applicationInitializer.getPluginsPath()).getAbsoluteFile();
+            pluginLoader.withPath(pluginsPath);
+        }catch (MalformedURLException e){
+            logError(new Exception("Couldn't parse plugin path to URL: "+applicationInitializer.getPluginsPath(),e));
+            pluginLoader.noPath();
+        }
 
         remoteClient = new MongoClientHandler(applicationInitializer.getRemote(),
                 commandFailedEvent -> logError(commandFailedEvent.getThrowable()), () -> {
