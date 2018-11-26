@@ -8,6 +8,7 @@
   <name>SignalTester</name>
   <url>https://github.com/Technus/SignalTester</url>
     <modules>
+        <module>RuntimeDoc</module>
         <module>DbAdditions</module>
         <module>SignalTesterCore</module>
         <module>SignalTesterUI</module>

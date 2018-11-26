@@ -12,17 +12,17 @@ import java.net.URLClassLoader;
 import java.util.ServiceLoader;
 
 public class PluginLoader{
-    private SignalTesterHeadless headless;
+    private final SignalTesterHeadless headless;
     private final ObservableMap<Class<? extends Plugin>,Plugin> plugins= FXCollections.observableHashMap();
 
     public PluginLoader(SignalTesterHeadless headless){
         this.headless=headless;
         plugins.addListener((MapChangeListener<Class<? extends Plugin>, Plugin>) change -> {
             if(change.wasRemoved()) {
-                change.getValueRemoved().cleanup(headless);
+                change.getValueRemoved().cleanup(this.headless);
             }
             if(change.wasAdded()){
-                change.getValueAdded().initialize(headless);
+                change.getValueAdded().initialize(this.headless);
             }
         });
     }
