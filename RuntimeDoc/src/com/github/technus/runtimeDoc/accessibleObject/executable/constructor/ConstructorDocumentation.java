@@ -5,23 +5,23 @@ import com.github.technus.runtimeDoc.accessibleObject.executable.ExecutableDocum
 import java.lang.annotation.ElementType;
 import java.lang.reflect.Constructor;
 
-public class ConstructorDocumentation<T> extends ExecutableDocumentation<Constructor<T>> {
-    public ConstructorDocumentation(Constructor<T> constructor){
+public class ConstructorDocumentation extends ExecutableDocumentation<Constructor> {
+    public ConstructorDocumentation(Constructor constructor){
         super(constructor,ElementType.CONSTRUCTOR);
     }
 
     @Override
-    protected String setName() {
+    protected String fillName() {
         return element.getName();
     }
 
     @Override
-    protected String setDeclaration() {
+    protected String fillDeclaration() {
         return element.toGenericString();
     }
 
     @Override
-    protected String setDescriptionTag() {
+    protected String fillDescriptionTag() {
         return element.toGenericString();
     }
 }

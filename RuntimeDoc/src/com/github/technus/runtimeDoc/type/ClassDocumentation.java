@@ -2,25 +2,31 @@ package com.github.technus.runtimeDoc.type;
 
 import com.github.technus.runtimeDoc.AnnotatedElementDocumentation;
 import com.github.technus.runtimeDoc.type.parameter.TypeParameterDocumentation;
+import com.github.technus.runtimeDoc.type.use.child.InterfaceDocumentation;
+import com.github.technus.runtimeDoc.type.use.child.SuperClassDocumentation;
 
 import java.lang.annotation.ElementType;
+import java.lang.reflect.AnnotatedType;
 import java.lang.reflect.TypeVariable;
 
-public class ClassDocumentation<T> extends AnnotatedElementDocumentation<Class<T>> {
+public class ClassDocumentation extends AnnotatedElementDocumentation<Class> {
     @SuppressWarnings("unchecked")
-    public ClassDocumentation(Class<T> clazz){
+    public ClassDocumentation(Class clazz){
         super(clazz,ElementType.TYPE);
         for(TypeVariable typeVariable:element.getTypeParameters()){
-            addChild(new TypeParameterDocumentation(typeVariable));
+            addChild(new TypeParameterDocumentation(typeVariable).withParent(this));
+        }
+        AnnotatedType annotatedType=element.getAnnotatedSuperclass();
+        if(annotatedType!=null){
+            addChild(new SuperClassDocumentation(annotatedType).withParent(this));
+        }
+        for(AnnotatedType exception:element.getAnnotatedInterfaces()){
+            addChild(new InterfaceDocumentation(exception).withParent(this));
         }
     }
 
-    protected ClassDocumentation(Class<T> clazz,ElementType type){
-        super(clazz,type);
-    }
-
     @Override
-    protected String setName() {
+    protected String fillName() {
         String name=element.getSimpleName();
         if(name.length()==0){
             return element.getTypeName();
@@ -29,12 +35,12 @@ public class ClassDocumentation<T> extends AnnotatedElementDocumentation<Class<T
     }
 
     @Override
-    protected String setDeclaration() {
+    protected String fillDeclaration() {
         return element.getCanonicalName();
     }
 
     @Override
-    protected String setDescriptionTag() {
+    protected String fillDescriptionTag() {
         return element.getName();
     }
 }

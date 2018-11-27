@@ -176,7 +176,7 @@ public class SignalTesterHeadless implements AutoCloseable{
             pluginLoader.withPath(pluginsPath);
         }catch (MalformedURLException e){
             logError(new Exception("Couldn't parse plugin path to URL: "+applicationInitializer.getPluginsPath(),e));
-            pluginLoader.noPath();
+            pluginLoader.withoutPath();
         }
 
         remoteClient = new MongoClientHandler(applicationInitializer.getRemote(),

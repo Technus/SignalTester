@@ -14,7 +14,7 @@ public abstract class AnnotatedElementDocumentation<T extends AnnotatedElement> 
     protected ElementType type;
     protected String name,declaration,descriptionTag;
     protected AnnotatedElementDocumentation parent;
-    protected final List<AnnotatedElementDocumentation> children=new ArrayList<>();
+    protected final Set<AnnotatedElementDocumentation> children=new HashSet<>();
 
     protected AnnotatedElementDocumentation(T element,ElementType type) {
         this.element=element;
@@ -80,21 +80,33 @@ public abstract class AnnotatedElementDocumentation<T extends AnnotatedElement> 
      */
     private void fillInformation(){
         if(name==null || name.length()==0){
-            name=setName();
+            name= fillName();
         }
         if(declaration==null || declaration.length()==0){
-            declaration=setDeclaration();
+            declaration= fillDeclaration();
         }
         if(descriptionTag==null || descriptionTag.length()==0){
-            descriptionTag=setDescriptionTag();
+            descriptionTag= fillDescriptionTag();
         }
     }
 
-    protected abstract String setName();
+    protected abstract String fillName();
 
-    protected abstract String setDeclaration();
+    protected abstract String fillDeclaration();
 
-    protected abstract String setDescriptionTag();
+    protected abstract String fillDescriptionTag();
+
+    public void setName(String name) {
+        this.name = name;
+    }
+
+    public void setDeclaration(String declaration) {
+        this.declaration = declaration;
+    }
+
+    public void setDescriptionTag(String descriptionTag) {
+        this.descriptionTag = descriptionTag;
+    }
 
     public final T getElement() {
         return element;
@@ -147,7 +159,15 @@ public abstract class AnnotatedElementDocumentation<T extends AnnotatedElement> 
             Class enclosingClass = getEnclosingClass();
             if (enclosingClass != null) {
                 ResourceBundle resourceBundle = ResourceBundle.getBundle(enclosingClass.getSimpleName(), locale, enclosingClass.getClassLoader());
-                return resourceBundle.getString(getDescriptionTag());
+                try{
+                    String resource=resourceBundle.getString(getDescriptionTag());
+                    if(resource.length()==0){
+                        return tag;
+                    }
+                    return resource;
+                }catch (MissingResourceException|NullPointerException e){
+                    return tag;
+                }
             }
         }
         return null;
@@ -157,21 +177,67 @@ public abstract class AnnotatedElementDocumentation<T extends AnnotatedElement> 
         return getDescription(Locale.getDefault());
     }
 
-    public void setParent(AnnotatedElementDocumentation parent) {
-        if(this.parent==null) {
+    public final AnnotatedElementDocumentation<T> withParent(AnnotatedElementDocumentation parent) {
+        setParent(parent);
+        return this;
+    }
+
+    public final void setParent(AnnotatedElementDocumentation parent) {
+        if(this.parent==null && parent!=null) {
             this.parent = parent;
+            if(!parent.getChildren().contains(this)){
+                parent.addChild(this);
+            }
         }
     }
 
-    public AnnotatedElementDocumentation getParent() {
+    public final AnnotatedElementDocumentation getParent() {
         return parent;
     }
 
-    public void addChild(AnnotatedElementDocumentation child){
-        children.add(child);
+    public final void addChild(AnnotatedElementDocumentation child){
+        if(child!=null) {
+            child.setParent(this);
+        }
     }
 
-    public List<AnnotatedElementDocumentation> getChildren() {
-        return Collections.unmodifiableList(children);
+    public final Set<AnnotatedElementDocumentation> getChildren() {
+        return Collections.unmodifiableSet(children);
+    }
+
+    public String getDocumentationTypeTag(){
+        return getClass().getSimpleName().replace("Documentation","");
+    }
+
+    public final String getDocumentationType(){
+        return getDocumentationType(Locale.getDefault());
+    }
+
+    public String getDocumentationType(Locale locale){
+        String tag=getDescriptionTag();
+        if(tag!=null) {
+            Class clazz = getClass();
+            ResourceBundle resourceBundle = ResourceBundle.getBundle(clazz.getSimpleName(), locale, clazz.getClassLoader());
+            try{
+                String resource=resourceBundle.getString(getDescriptionTag());
+                if(resource.length()==0){
+                    return tag;
+                }
+                return resource;
+            }catch (MissingResourceException|NullPointerException e) {
+                return tag;
+            }
+        }
+        return null;
+    }
+
+    @Override
+    public final int hashCode() {
+        return element.hashCode();
+    }
+
+    @Override
+    public final boolean equals(Object obj) {
+        return obj.getClass() == this.getClass() && element.equals(obj);
     }
 }

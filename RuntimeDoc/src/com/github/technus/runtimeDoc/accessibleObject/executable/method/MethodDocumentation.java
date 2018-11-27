@@ -11,17 +11,17 @@ public class MethodDocumentation extends ExecutableDocumentation<Method> {
     }
 
     @Override
-    protected String setName() {
+    protected String fillName() {
         return element.getName();
     }
 
     @Override
-    protected String setDeclaration() {
+    protected String fillDeclaration() {
         return element.toGenericString();
     }
 
     @Override
-    protected String setDescriptionTag() {
+    protected String fillDescriptionTag() {
         return element.toGenericString();
     }
 }

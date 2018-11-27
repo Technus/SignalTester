@@ -27,7 +27,7 @@ public class PluginLoader{
         });
     }
 
-    public void noPath(){
+    public PluginLoader withoutPath(){
         ServiceLoader<Plugin> loader=ServiceLoader.load(Plugin.class);
         loader.iterator().forEachRemaining(plugin -> {
             if(!plugins.containsKey(plugin.getClass())) {
@@ -35,13 +35,15 @@ public class PluginLoader{
                 plugins.put(plugin.getClass(), plugin);
             }
         });
+        return this;
     }
 
-    public void withPath(File directory) throws MalformedURLException {
+    public PluginLoader withPath(File directory) throws MalformedURLException {
         //todo for each directory?
         ServiceLoader<Plugin> loader=ServiceLoader.load(Plugin.class,
                 URLClassLoader.newInstance(new URL[]{directory.toURI().toURL()},ClassLoader.getSystemClassLoader()));
         loader.iterator().forEachRemaining(plugin -> plugins.putIfAbsent(plugin.getClass(),plugin));
+        return this;
     }
 
     public ObservableMap<Class<? extends Plugin>,Plugin> getPlugins() {
