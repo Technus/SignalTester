@@ -2,10 +2,8 @@ package com.github.technus.signalTester.plugin;
 
 import com.github.technus.signalTester.SignalTesterHeadless;
 
-import java.util.HashMap;
-
-public interface Plugin {
+public interface Plugin<T> {
     void initialize(SignalTesterHeadless headless);
     void cleanup(SignalTesterHeadless headless);
-    HashMap<Class, PluginClass> pluginClasses();
+    PluginDocumentation<Plugin<T>> pluginDocumentation();
 }
