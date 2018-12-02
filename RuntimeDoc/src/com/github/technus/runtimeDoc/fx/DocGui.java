@@ -12,7 +12,8 @@ import java.util.ResourceBundle;
 public class DocGui extends Application {
     @Override
     public void start(Stage primaryStage) throws Exception {
-        FXMLLoader loader=new FXMLLoader(DocumentationController.class.getResource("Documentation.fxml"), ResourceBundle.getBundle("DocumentationController", Locale.ROOT));
+        FXMLLoader loader=new FXMLLoader(DocumentationController.class.getResource("Documentation.fxml"),
+                ResourceBundle.getBundle(DocumentationController.class.getName(),Locale.getDefault(),DocumentationController.class.getClassLoader()));
         Parent parent= loader.load();
         primaryStage.setScene(new Scene(parent));
         primaryStage.titleProperty().setValue("DocGUI");

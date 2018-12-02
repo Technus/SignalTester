@@ -10,13 +10,13 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.*;
 
-public abstract class AnnotatedElementDocumentation<T extends AnnotatedElement> {
+public abstract class AnnotatedElementDocumentation<T extends AnnotatedElement> implements Comparable<AnnotatedElementDocumentation<T>>{
     protected T element;
     protected Annotation annotation;
     protected ElementType type;
     protected String name,declaration,descriptionTag;
     protected AnnotatedElementDocumentation parent;
-    protected final Set<AnnotatedElementDocumentation> children=new HashSet<>();
+    protected final Set<AnnotatedElementDocumentation> children=new TreeSet<>();
 
     protected AnnotatedElementDocumentation(T element,ElementType type) {
         this.element=element;
@@ -160,9 +160,9 @@ public abstract class AnnotatedElementDocumentation<T extends AnnotatedElement> 
         if(tag!=null) {
             Class enclosingClass = getEnclosingClass();
             if (enclosingClass != null) {
-                ResourceBundle resourceBundle = ResourceBundle.getBundle(enclosingClass.getSimpleName(), locale, enclosingClass.getClassLoader());
                 try{
-                    String resource=resourceBundle.getString(getDescriptionTag());
+                    ResourceBundle resourceBundle = ResourceBundle.getBundle(enclosingClass.getSimpleName(), locale, enclosingClass.getClassLoader());
+                    String resource=resourceBundle.getString(tag);
                     if(resource.length()==0){
                         return tag;
                     }
@@ -184,12 +184,11 @@ public abstract class AnnotatedElementDocumentation<T extends AnnotatedElement> 
         return this;
     }
 
+    @SuppressWarnings("unchecked")
     public final void setParent(AnnotatedElementDocumentation parent) {
         if(this.parent==null && parent!=null) {
             this.parent = parent;
-            if(!parent.getChildren().contains(this)){
-                parent.addChild(this);
-            }
+            parent.children.add(this);
         }
     }
 
@@ -216,12 +215,12 @@ public abstract class AnnotatedElementDocumentation<T extends AnnotatedElement> 
     }
 
     public String getDocumentationType(Locale locale){
-        String tag=getDescriptionTag();
+        String tag=getDocumentationTypeTag();
         if(tag!=null) {
             Class clazz = getClass();
-            ResourceBundle resourceBundle = ResourceBundle.getBundle(clazz.getSimpleName(), locale, clazz.getClassLoader());
             try{
-                String resource=resourceBundle.getString(getDescriptionTag());
+                ResourceBundle resourceBundle = ResourceBundle.getBundle(clazz.getSimpleName(), locale, clazz.getClassLoader());
+                String resource=resourceBundle.getString(tag);
                 if(resource.length()==0){
                     return tag;
                 }
@@ -240,7 +239,7 @@ public abstract class AnnotatedElementDocumentation<T extends AnnotatedElement> 
 
     @Override
     public final boolean equals(Object obj) {
-        return obj.getClass() == this.getClass() && element.equals(obj);
+        return obj!=null && obj.getClass() == this.getClass() && element.equals(((AnnotatedElementDocumentation)obj).element);
     }
 
     public final TreeItem<AnnotatedElementDocumentation> getTreeItem(){
@@ -253,7 +252,7 @@ public abstract class AnnotatedElementDocumentation<T extends AnnotatedElement> 
     public final TreeItem<AnnotatedElementDocumentation> buildTreeItem(){
         TreeItem<AnnotatedElementDocumentation> item=getTreeItem();
         children.forEach(children->item.getChildren().add(children.buildTreeItem()));
-        return null;
+        return item;
     }
 
     public final TreeItem<AnnotatedElementDocumentation> buildTreeRoot(){
@@ -261,5 +260,17 @@ public abstract class AnnotatedElementDocumentation<T extends AnnotatedElement> 
             return buildTreeItem();
         }
         return null;
+    }
+
+    @Override
+    public int compareTo(AnnotatedElementDocumentation<T> o) {
+        int comparison=getDocumentationTypeTag().compareTo(o.getDocumentationTypeTag());
+        if(comparison==0){
+            comparison=getName().compareTo(o.getName());
+            if(comparison==0){
+                comparison= Objects.requireNonNull(getDescriptionTag()).compareTo(Objects.requireNonNull(o.getDescriptionTag()));
+            }
+        }
+        return comparison;
     }
 }

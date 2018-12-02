@@ -1,24 +1,31 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
+<?import javafx.scene.control.ScrollPane?>
+<?import javafx.scene.control.SplitPane?>
 <?import javafx.scene.control.TreeTableColumn?>
 <?import javafx.scene.control.TreeTableView?>
 <?import javafx.scene.layout.AnchorPane?>
-<?import javafx.scene.layout.BorderPane?>
 
 <AnchorPane prefHeight="400.0" prefWidth="600.0" xmlns="http://javafx.com/javafx/8.0.172-ea" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.github.technus.runtimeDoc.fx.DocumentationController">
    <children>
-      <BorderPane layoutX="167.0" layoutY="89.0" prefHeight="200.0" prefWidth="200.0" AnchorPane.bottomAnchor="0.0" AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="0.0">
-         <left>
-            <TreeTableView fx:id="documentationTree" prefHeight="200.0" prefWidth="200.0" BorderPane.alignment="CENTER">
-              <columns>
-                <TreeTableColumn fx:id="nameColumn" prefWidth="75.0" text="%name" />
-                <TreeTableColumn fx:id="typeColumn" prefWidth="75.0" text="%type" />
-              </columns>
-            </TreeTableView>
-         </left>
-         <center>
-            <AnchorPane fx:id="elementAnchor" prefHeight="200.0" prefWidth="200.0" BorderPane.alignment="CENTER" />
-         </center>
-      </BorderPane>
+      <SplitPane dividerPositions="0.5" AnchorPane.bottomAnchor="0.0" AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="0.0">
+         <items>
+            <ScrollPane fitToHeight="true" fitToWidth="true">
+               <content>
+                  <TreeTableView fx:id="documentationTree">
+                    <columns>
+                      <TreeTableColumn fx:id="nameColumn" editable="false" prefWidth="75.0" text="%name" />
+                      <TreeTableColumn fx:id="typeColumn" editable="false" prefWidth="75.0" text="%type" />
+                    </columns>
+                  </TreeTableView>
+               </content>
+            </ScrollPane>
+            <ScrollPane fx:id="elementScroll" fitToHeight="true" fitToWidth="true">
+               <content>
+                  <AnchorPane prefHeight="400.0" prefWidth="319.0" />
+               </content>
+            </ScrollPane>
+         </items>
+      </SplitPane>
    </children>
 </AnchorPane>
