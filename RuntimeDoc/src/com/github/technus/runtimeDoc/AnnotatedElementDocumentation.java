@@ -1,5 +1,7 @@
 package com.github.technus.runtimeDoc;
 
+import javafx.scene.control.TreeItem;
+
 import java.lang.annotation.Annotation;
 import java.lang.annotation.AnnotationFormatError;
 import java.lang.annotation.ElementType;
@@ -239,5 +241,25 @@ public abstract class AnnotatedElementDocumentation<T extends AnnotatedElement> 
     @Override
     public final boolean equals(Object obj) {
         return obj.getClass() == this.getClass() && element.equals(obj);
+    }
+
+    public final TreeItem<AnnotatedElementDocumentation> getTreeItem(){
+        TreeItem<AnnotatedElementDocumentation> item= new TreeItem<>();
+        item.setValue(this);
+        return item;
+    }
+
+    @SuppressWarnings("unchecked")
+    public final TreeItem<AnnotatedElementDocumentation> buildTreeItem(){
+        TreeItem<AnnotatedElementDocumentation> item=getTreeItem();
+        children.forEach(children->item.getChildren().add(children.buildTreeItem()));
+        return null;
+    }
+
+    public final TreeItem<AnnotatedElementDocumentation> buildTreeRoot(){
+        if(parent==null){
+            return buildTreeItem();
+        }
+        return null;
     }
 }
