@@ -1,5 +1,8 @@
 package com.github.technus.signalTester;
 
+import java.io.ByteArrayOutputStream;
+import java.io.PrintStream;
+
 public class Utility {
     private Utility(){}
 
@@ -82,4 +85,17 @@ public class Utility {
         return doubles;
     }
     //endregion
+
+    public static String throwableToString(Throwable t){
+        ByteArrayOutputStream outputStream=new ByteArrayOutputStream();
+        PrintStream printStream=new PrintStream(outputStream);
+        t.printStackTrace(printStream);
+        t.printStackTrace();
+        try {
+            outputStream.flush();
+        }catch (Exception e){
+            e.printStackTrace();
+        }
+        return new String(outputStream.toByteArray());
+    }
 }

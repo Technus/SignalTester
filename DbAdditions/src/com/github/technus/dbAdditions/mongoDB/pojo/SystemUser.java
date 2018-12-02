@@ -7,17 +7,17 @@ import org.bson.codecs.pojo.annotations.BsonProperty;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 
-public class UserNT{
+public class SystemUser {
     public final String domainName,userName,systemName;
 
-    public UserNT(){
+    public SystemUser(){
         domainName=getCurrentDomainName();
         userName=getCurrentUserName();
         systemName=getCurrentSystemName();
     }
 
     @BsonCreator
-    public UserNT(
+    public SystemUser(
             @BsonProperty("domainName") String domainName,
             @BsonProperty("userName") String userName,
             @BsonProperty("systemName") String systemName) {

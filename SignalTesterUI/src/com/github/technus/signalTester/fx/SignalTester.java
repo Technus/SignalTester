@@ -55,9 +55,9 @@ public class SignalTester extends Application {
                 updateProgress(workDone++,workAmount);
                 Thread.setDefaultUncaughtExceptionHandler((t,e)->{
                     controller.model.showThrowableMain(e);
-                    if(!(e instanceof Exception)){
+                    //if(!(e instanceof Exception)){
                         Platform.exit();
-                    }
+                    //}
                 });
                 updateProgress(workDone++,workAmount);
                 controller.model.initialize();

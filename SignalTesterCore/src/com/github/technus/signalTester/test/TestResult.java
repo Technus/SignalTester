@@ -1,7 +1,7 @@
 package com.github.technus.signalTester.test;
 
 import com.github.technus.dbAdditions.functionalInterfaces.ITimedModification;
-import com.github.technus.dbAdditions.mongoDB.pojo.UserNT;
+import com.github.technus.dbAdditions.mongoDB.pojo.SystemUser;
 import org.bson.codecs.pojo.annotations.BsonCreator;
 import org.bson.codecs.pojo.annotations.BsonId;
 import org.bson.codecs.pojo.annotations.BsonProperty;
@@ -12,20 +12,20 @@ import java.time.Instant;
 public class TestResult implements ITimedModification {
     @BsonId
     private ObjectId id;
-    private UserNT userNT;
+    private SystemUser systemUser;
     private Instant timestamp;
 
     public TestResult() {
-        userNT=new UserNT();
+        systemUser =new SystemUser();
         timestamp=Instant.now();
     }
 
     @BsonCreator
     public TestResult(@BsonId ObjectId id,
-                      @BsonProperty("userNT") UserNT userNT,
+                      @BsonProperty("systemUser") SystemUser systemUser,
                       @BsonProperty("timestamp") Instant timestamp) {
         this.id = id;
-        this.userNT=userNT;
+        this.systemUser = systemUser;
         this.timestamp=timestamp;
     }
 
@@ -37,8 +37,8 @@ public class TestResult implements ITimedModification {
         this.id = id;
     }
 
-    public UserNT getUserNT() {
-        return userNT;
+    public SystemUser getSystemUser() {
+        return systemUser;
     }
 
     public Instant getTimestamp() {

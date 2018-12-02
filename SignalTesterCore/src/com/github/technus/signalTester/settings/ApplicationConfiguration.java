@@ -2,13 +2,11 @@ package com.github.technus.signalTester.settings;
 
 import com.github.technus.dbAdditions.functionalInterfaces.ITimedModification;
 import org.bson.codecs.pojo.annotations.BsonCreator;
-import org.bson.codecs.pojo.annotations.BsonDiscriminator;
 import org.bson.codecs.pojo.annotations.BsonId;
 import org.bson.codecs.pojo.annotations.BsonProperty;
 
 import java.time.Instant;
 
-@BsonDiscriminator
 public class ApplicationConfiguration implements ITimedModification {
     @BsonId
     private final String id;

@@ -9,6 +9,8 @@ import java.io.File;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLClassLoader;
+import java.nio.file.Files;
+import java.util.ArrayList;
 import java.util.ServiceLoader;
 
 public class PluginLoader{
@@ -27,23 +29,43 @@ public class PluginLoader{
         });
     }
 
-    public PluginLoader withoutPath(){
-        ServiceLoader<Plugin> loader=ServiceLoader.load(Plugin.class);
+    public void loadWithoutPath(){
+        ServiceLoader<Plugin> loader=ServiceLoader.load(Plugin.class, Plugin.class.getClassLoader());
         loader.iterator().forEachRemaining(plugin -> {
             if(!plugins.containsKey(plugin.getClass())) {
                 plugin.initialize(headless);
                 plugins.put(plugin.getClass(), plugin);
             }
         });
-        return this;
     }
 
-    public PluginLoader withPath(File directory) throws MalformedURLException {
-        //todo for each directory?
-        ServiceLoader<Plugin> loader=ServiceLoader.load(Plugin.class,
-                URLClassLoader.newInstance(new URL[]{directory.toURI().toURL()},ClassLoader.getSystemClassLoader()));
-        loader.iterator().forEachRemaining(plugin -> plugins.putIfAbsent(plugin.getClass(),plugin));
-        return this;
+    public void loadWithPath(File parentPluginFile) throws MalformedURLException {
+        ArrayList<URL> urlArrayList=new ArrayList<>();
+        if(parentPluginFile.isDirectory()) {
+            addFolderContents(urlArrayList, parentPluginFile);
+        }else {
+            urlArrayList.add(parentPluginFile.toURI().toURL());
+        }
+        URLClassLoader urlClassLoader = URLClassLoader.newInstance(urlArrayList.toArray(new URL[0]), Plugin.class.getClassLoader());
+        ServiceLoader<Plugin> pluginServiceLoader = ServiceLoader.load(Plugin.class, urlClassLoader);
+        pluginServiceLoader.iterator().forEachRemaining(plugin -> plugins.putIfAbsent(plugin.getClass(), plugin));
+    }
+
+    private void addFolderContents(ArrayList<URL> urlArrayList,File parentDir) throws MalformedURLException{
+        if(parentDir.canRead() && !Files.isSymbolicLink(parentDir.toPath())){
+            File[] files = parentDir.listFiles((jarFile, name) -> name.endsWith(".jar") && jarFile.isFile() && jarFile.canRead());
+            if (files != null) {
+                for (File file : files) {
+                    urlArrayList.add(file.toURI().toURL());
+                }
+            }
+            File[] dirs=parentDir.listFiles(File::isDirectory);
+            if(dirs!=null){
+                for(File dir:dirs){
+                    addFolderContents(urlArrayList,dir);
+                }
+            }
+        }
     }
 
     public ObservableMap<Class<? extends Plugin>,Plugin> getPlugins() {

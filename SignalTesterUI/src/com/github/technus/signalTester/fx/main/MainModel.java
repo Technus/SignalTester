@@ -1,6 +1,7 @@
 package com.github.technus.signalTester.fx.main;
 
 import com.github.technus.signalTester.SignalTesterHeadless;
+import com.github.technus.signalTester.Utility;
 import javafx.geometry.Bounds;
 import javafx.scene.control.Alert;
 import javafx.scene.control.ButtonType;
@@ -8,8 +9,6 @@ import javafx.scene.control.Label;
 import javafx.scene.control.ScrollPane;
 import javafx.scene.layout.Region;
 
-import java.io.ByteArrayOutputStream;
-import java.io.PrintStream;
 import java.util.List;
 import java.util.Optional;
 
@@ -26,6 +25,7 @@ public class MainModel {
         headless.initialize();
     }
 
+    //region throwable gui
     public ButtonType showConfirmThrowableMain(Throwable throwable, ButtonType... buttonTypes){
         return showConfirmThrowable(defaultRegion,throwable,buttonTypes);
     }
@@ -53,7 +53,7 @@ public class MainModel {
         alert.setTitle(throwable.getClass().getSimpleName());
         alert.setHeaderText(throwable.getLocalizedMessage());
         ScrollPane scrollPane=new ScrollPane();
-        Label label=new Label(printThrowable(throwable));
+        Label label=new Label(Utility.throwableToString(throwable));
         scrollPane.setContent(label);
         alert.getDialogPane().setContent(scrollPane);
         alert.setResizable(true);
@@ -67,17 +67,5 @@ public class MainModel {
         Optional<ButtonType> buttonTypeOptional=alert.showAndWait();
         return buttonTypeOptional.orElse(ButtonType.CLOSE);
     }
-
-    private static String printThrowable(Throwable t){
-        ByteArrayOutputStream outputStream=new ByteArrayOutputStream();
-        PrintStream printStream=new PrintStream(outputStream);
-        t.printStackTrace(printStream);
-        t.printStackTrace();
-        try {
-            outputStream.flush();
-        }catch (Exception e){
-            e.printStackTrace();
-        }
-        return new String(outputStream.toByteArray());
-    }
+    //endregion
 }

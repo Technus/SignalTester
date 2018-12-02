@@ -18,7 +18,7 @@ public class ThrowableLog {
     public static String currentApplicationName;
     public static final CodecRegistry THROWABLE_LOG_COLLECTION_CODECS =
             SafePOJO.buildCodecRegistryWithOtherClassesOrCodecs(ThrowableLog.class,ThrowableLog.class,
-                    ThrowableLog.class,ThreadLog.class,ThreadGroupLog.class,UserNT.class,ClassCodec.INSTANCE,StackTraceElementCodec.INSTANCE);
+                    ThrowableLog.class,ThreadLog.class,ThreadGroupLog.class, SystemUser.class,ClassCodec.INSTANCE,StackTraceElementCodec.INSTANCE);
 
     private ObjectId id;
     private final String applicationName;
@@ -31,7 +31,7 @@ public class ThrowableLog {
     private final ArrayList<StackTraceElement> stackTrace;
     private final ThreadLog threadLog;
     private final Instant time;
-    private final UserNT userNT;
+    private final SystemUser systemUser;
 
     public ThrowableLog(Throwable t){
         time=Instant.now();
@@ -59,7 +59,7 @@ public class ThrowableLog {
         }
         applicationName = currentApplicationName;
         stackTrace = new ArrayList<>(Arrays.asList(t.getStackTrace()));
-        userNT=new UserNT();
+        systemUser =new SystemUser();
     }
 
     public ThrowableLog(Throwable t, int depthLevelsCount){
@@ -89,7 +89,7 @@ public class ThrowableLog {
         }
         applicationName = currentApplicationName;
         stackTrace = new ArrayList<>(Arrays.asList(t.getStackTrace()));
-        userNT=new UserNT();
+        systemUser =new SystemUser();
     }
 
     @BsonCreator
@@ -98,7 +98,7 @@ public class ThrowableLog {
             @BsonProperty("time") Instant time,
             @BsonProperty("threadLog") ThreadLog threadLog,
             @BsonProperty("applicationName") String applicationName,
-            @BsonProperty("userNT") UserNT userNT,
+            @BsonProperty("systemUser") SystemUser systemUser,
             @BsonProperty("throwableClass") Class<? extends Throwable> throwableClass,
             @BsonProperty("message") String message,
             @BsonProperty("cause") ThrowableLog cause,
@@ -108,7 +108,7 @@ public class ThrowableLog {
         this.time=time;
         this.threadLog=threadLog;
         this.applicationName = applicationName;
-        this.userNT = userNT;
+        this.systemUser = systemUser;
         this.throwable = null;
         this.throwableClass = throwableClass;
         this.message = message;
@@ -162,7 +162,7 @@ public class ThrowableLog {
         return threadLog;
     }
 
-    public UserNT getUserNT() {
-        return userNT;
+    public SystemUser getSystemUser() {
+        return systemUser;
     }
 }

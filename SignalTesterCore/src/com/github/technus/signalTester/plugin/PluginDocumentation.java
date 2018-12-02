@@ -14,19 +14,20 @@ import java.lang.reflect.Method;
 import java.util.HashMap;
 import java.util.Map;
 
-public abstract class PluginDocumentation<T extends Plugin> {
-    public final Plugin<T> plugin;
+public abstract class PluginDocumentation<T extends Plugin<T>> {
+    public final T plugin;
     public final HashMap<Class,ClassDocumentation> classes=new HashMap<>();
     public final HashMap<Package,PackageDocumentation> packages=new HashMap<>();
     public final HashMap<Field, FieldDocumentation> fields=new HashMap<>();
     public final HashMap<Method, MethodDocumentation> methods=new HashMap<>();
     public final HashMap<Constructor,ConstructorDocumentation> constructors=new HashMap<>();
 
-    public PluginDocumentation(Plugin<T> plugin){
+    public PluginDocumentation(T plugin){
         this.plugin=plugin;
         loadAllDocumentation();
         mapDocumentation();
         linkDocumentation();
+        int i=0;
     }
 
     /**

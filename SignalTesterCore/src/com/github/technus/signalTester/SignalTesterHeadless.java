@@ -4,16 +4,18 @@ import com.github.technus.dbAdditions.functionalInterfaces.ITimedModification;
 import com.github.technus.dbAdditions.mongoDB.MongoClientHandler;
 import com.github.technus.dbAdditions.mongoDB.SafePOJO;
 import com.github.technus.dbAdditions.mongoDB.fsBackend.FileSystemCollection;
+import com.github.technus.dbAdditions.mongoDB.fsBackend.MongoFSBackendException;
 import com.github.technus.dbAdditions.mongoDB.pojo.ConnectionConfiguration;
+import com.github.technus.dbAdditions.mongoDB.pojo.SystemUser;
 import com.github.technus.dbAdditions.mongoDB.pojo.ThrowableLog;
-import com.github.technus.dbAdditions.mongoDB.pojo.UserNT;
 import com.github.technus.dbAdditions.utility.Container;
 import com.github.technus.dbAdditions.utility.IContainer;
 import com.github.technus.signalTester.plugin.PluginLoader;
-import com.github.technus.signalTester.settings.ApplicationConfiguration;
-import com.github.technus.signalTester.settings.ApplicationInitializer;
+import com.github.technus.signalTester.settings.*;
 import com.github.technus.signalTester.test.TestDefinition;
+import com.github.technus.signalTester.test.TestDefinitionException;
 import com.github.technus.signalTester.test.TestResult;
+import com.mongodb.MongoException;
 import com.mongodb.MongoNamespace;
 import com.mongodb.MongoTimeoutException;
 import com.mongodb.client.MongoCollection;
@@ -54,13 +56,12 @@ public class SignalTesterHeadless implements AutoCloseable{
     public static void main(String... args) {
         SignalTesterHeadless signalTesterHeadless=new SignalTesterHeadless(args);
 
-        Thread.setDefaultUncaughtExceptionHandler((t, e) -> {
-            signalTesterHeadless.logError(e);
-            if(!(e instanceof Exception)){
-                System.exit(1);
-            }
+        Thread.setDefaultUncaughtExceptionHandler((t, e1) -> {
+            signalTesterHeadless.logError(e1);
+            //if(!(e1 instanceof Exception)){
+            System.exit(-1);
+            //}
         });
-        Thread.currentThread().setUncaughtExceptionHandler(Thread.getDefaultUncaughtExceptionHandler());
 
         signalTesterHeadless.initialize();
     }
@@ -89,14 +90,14 @@ public class SignalTesterHeadless implements AutoCloseable{
                     try {
                         throwableCollectionLocal.insertOne(log);
                     } catch (Exception e) {
-                        new Exception("Unable to insert throwable log", e).printStackTrace();
+                        new MongoFSBackendException("Unable to insert throwable log", e).printStackTrace();
                         failed = true;
                     }
                     if (failed) {
                         throwable.printStackTrace();
                     }
                 } catch (Throwable t) {
-                    new Error("Failed to log error", t).printStackTrace();
+                    new MongoFSBackendException("Failed to log error", t).printStackTrace();
                 }
             }
         };
@@ -108,7 +109,7 @@ public class SignalTesterHeadless implements AutoCloseable{
                 try {
                     resultCollectionLocal.insertOne(result);
                 }catch (Exception e){
-                    throw new Error("Unable to insert result log",e);
+                    throw new MongoFSBackendException("Unable to insert result log",e);
                 }
             }
         };
@@ -123,7 +124,7 @@ public class SignalTesterHeadless implements AutoCloseable{
         CodecRegistry definitionCodecs = SafePOJO.buildCodecRegistryWithOtherClassesOrCodecs(
                 TestDefinition.class, TestDefinition.class);
         CodecRegistry resultCodecs = SafePOJO.buildCodecRegistryWithOtherClassesOrCodecs(
-                TestResult.class, TestResult.class, UserNT.class);
+                TestResult.class, TestResult.class, SystemUser.class);
 
         ApplicationInitializer applicationInitializer;
         File initializerFile;
@@ -138,9 +139,9 @@ public class SignalTesterHeadless implements AutoCloseable{
                 applicationInitializer = SafePOJO.decode(BsonDocument.parse(new String(
                         Files.readAllBytes(initializerFile.toPath()))), ApplicationInitializer.class, initializerRegistry);
             }catch (IOException e){
-                throw new Error("Unable to read initializer "+initializerFile.getAbsolutePath(),e);
+                throw new InitializationError("Unable to read initializer "+initializerFile.getAbsolutePath(),e);
             }catch (Exception e){
-                throw new Error("Unable to decode initializer",e);
+                throw new InitializationError("Unable to decode initializer",e);
             }
         } else {
             applicationInitializer = new ApplicationInitializer();
@@ -148,16 +149,16 @@ public class SignalTesterHeadless implements AutoCloseable{
             try {
                 Files.write(initializerFile.toPath(), initializerDocument.toJson(JsonWriterSettings.builder().indent(true).build()).getBytes());
             }catch (IOException e){
-                logError(new Exception("Couldn't write initializer to "+initializerFile.getAbsolutePath(),e));
+                logError(new InitializationException("Couldn't write initializer to "+initializerFile.getAbsolutePath(),e));
             }catch (Exception e){
-                logError(new Exception("Couldn't encode initializer",e));
+                logError(new InitializationException("Couldn't encode initializer",e));
             }
         }
 
         try {
             Locale.setDefault(Locale.forLanguageTag(applicationInitializer.getLanguageTag()));
         } catch (Exception e) {
-            logError(new Exception("Couldn't set locale, using default en_US",e));
+            logError(new InitializationException("Couldn't set locale, using default en_US",e));
             Locale.setDefault(Locale.US);
         }
 
@@ -173,10 +174,11 @@ public class SignalTesterHeadless implements AutoCloseable{
         pluginLoader = new PluginLoader(this);
         try {
             File pluginsPath=new File(applicationInitializer.getPluginsPath()).getAbsoluteFile();
-            pluginLoader.withPath(pluginsPath);
+            pluginLoader.loadWithPath(pluginsPath);
         }catch (MalformedURLException e){
-            logError(new Exception("Couldn't parse plugin path to URL: "+applicationInitializer.getPluginsPath(),e));
-            pluginLoader.withoutPath();
+            logError(new InitializationException("Couldn't parse plugin path to URL: "+applicationInitializer.getPluginsPath(),e));
+        }finally {
+            pluginLoader.loadWithoutPath();//just to be sure internal plugins are loaded? //todo check
         }
 
         remoteClient = new MongoClientHandler(applicationInitializer.getRemote(),
@@ -188,15 +190,13 @@ public class SignalTesterHeadless implements AutoCloseable{
                         result.setId(null);
                         resultCollectionRemote.insertOne(result);
                     } catch (Exception e) {
-                        logError(new Exception("Couldn't insert result to remote",e));
+                        logError(new MongoException("Couldn't insert result to remote",e));
                         break;
-                    }finally {
-                        result.setId(id);
                     }
                     try{
-                        resultCollectionLocal.deleteOne(new Document().append("_id", result.getId()));
+                        resultCollectionLocal.deleteOne(new Document().append("_id", id));
                     }catch (Exception e){
-                        logError(new Exception("Couldn't delete result from local",e));
+                        logError(new MongoFSBackendException("Couldn't delete result from local",e));
                         break;
                     }
                 }
@@ -207,9 +207,16 @@ public class SignalTesterHeadless implements AutoCloseable{
                     try {
                         log.setId(null);
                         throwableCollectionRemote.insertOne(log);
-                        throwableCollectionLocal.deleteOne(new Document().append("_id", id));
                     } catch (Exception e) {
-                        new Exception("Couldn't insert throwable log to remote",e).printStackTrace();//just to be sure that there is no infinite work to do...
+                        new MongoException("Couldn't insert throwable log to remote",e).printStackTrace();
+                        //just to be sure that there is no infinite work to do not log this error
+                        break;
+                    }
+                    try{
+                        throwableCollectionLocal.deleteOne(new Document().append("_id", id));
+                    }catch (Exception e){
+                        new MongoFSBackendException("Couldn't delete throwable log from local",e).printStackTrace();
+                        //just to be sure that there is no infinite work to do do not log this error
                         break;
                     }
                 }
@@ -222,7 +229,7 @@ public class SignalTesterHeadless implements AutoCloseable{
         } catch (MongoTimeoutException e) {
             e.printStackTrace();
         } catch (Exception e) {
-            logError(new Exception("Couldn't ping database",e));
+            logError(new MongoException("Couldn't ping database",e));
         }
 
         throwableCollectionRemote = remoteDatabase.getCollection(ThrowableLog.class.getSimpleName(), ThrowableLog.class)
@@ -238,17 +245,17 @@ public class SignalTesterHeadless implements AutoCloseable{
         try {
             setContainerContent(ApplicationConfiguration.class, ApplicationConfiguration::new, configurationContainer = new Container<>(), configurationFile, applicationInitializer.getConfigurationName(), configurationCollectionRemote);
         }catch (IOException e){
-            logError(new Exception("Couldn't save configuration locally",e));
+            logError(new ConfigurationException("Couldn't save configuration locally",e));
         }catch (Exception e){
-            logError(new Exception("Couldn't encode configuration",e));
+            logError(new ConfigurationException("Couldn't encode configuration",e));
         }
         File definitionFile = new File(applicationInitializer.getLocalFilesPath() + File.separator + applicationInitializer.getDefinitionName() + '.' + FileSystemCollection.EXTENSION);
         try{
             setContainerContent(TestDefinition.class,TestDefinition::new,definitionContainer=new Container<>(),definitionFile,applicationInitializer.getDefinitionName(),definitionCollectionRemote);
         }catch (IOException e){
-            logError(new Exception("Couldn't save definition locally",e));
+            logError(new TestDefinitionException("Couldn't save definition locally",e));
         }catch (Exception e){
-            logError(new Exception("Couldn't encode definition",e));
+            logError(new TestDefinitionException("Couldn't encode definition",e));
         }
     }
 
@@ -334,5 +341,9 @@ public class SignalTesterHeadless implements AutoCloseable{
 
     public void setResultConsumer(Consumer<TestResult> resultConsumer) {
         this.resultConsumer = resultConsumer;
+    }
+
+    public PluginLoader getPluginLoader() {
+        return pluginLoader;
     }
 }
