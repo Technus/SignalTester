@@ -1,11 +1,11 @@
 package com.github.technus.signalTester.plugin;
 
-import com.github.technus.runtimeDoc.AnnotatedElementDocumentation;
-import com.github.technus.runtimeDoc.accessibleObject.executable.constructor.ConstructorDocumentation;
-import com.github.technus.runtimeDoc.accessibleObject.executable.method.MethodDocumentation;
-import com.github.technus.runtimeDoc.accessibleObject.field.FieldDocumentation;
-import com.github.technus.runtimeDoc.pack.PackageDocumentation;
-import com.github.technus.runtimeDoc.type.ClassDocumentation;
+import com.github.technus.runtimeDoc.annotatedElement.AnnotatedElementDocumentation;
+import com.github.technus.runtimeDoc.annotatedElement.accessibleObject.executable.constructor.ConstructorDocumentation;
+import com.github.technus.runtimeDoc.annotatedElement.accessibleObject.executable.method.MethodDocumentation;
+import com.github.technus.runtimeDoc.annotatedElement.accessibleObject.field.FieldDocumentation;
+import com.github.technus.runtimeDoc.annotatedElement.pack.PackageDocumentation;
+import com.github.technus.runtimeDoc.annotatedElement.type.ClassDocumentation;
 
 import java.lang.reflect.AnnotatedElement;
 import java.lang.reflect.Constructor;
@@ -86,7 +86,7 @@ public abstract class PluginDocumentation<T extends Plugin<T>> {
                 if(dot>=0) {
                     childParentName =childParentName.substring(0,dot);
                     if(parentName.equals(childParentName)){
-                        child.getValue().setParent(parent.getValue());
+                        parent.getValue().addChild(child.getValue());
                     }
                 }
             }

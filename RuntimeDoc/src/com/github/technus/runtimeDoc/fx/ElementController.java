@@ -1,6 +1,6 @@
 package com.github.technus.runtimeDoc.fx;
 
-import com.github.technus.runtimeDoc.AnnotatedElementDocumentation;
+import com.github.technus.runtimeDoc.annotatedElement.AnnotatedElementDocumentation;
 import javafx.beans.property.SimpleObjectProperty;
 import javafx.fxml.Initializable;
 import javafx.scene.control.TextArea;
@@ -14,6 +14,10 @@ public class ElementController implements Initializable {
 
     public void initialize(URL location, ResourceBundle resources) {
         annotatedElementProperty.addListener((observable, oldValue, newValue) -> {
+            if(newValue==null){
+                textArea.setText("");
+                return;
+            }
             String stringBuilder = newValue.getName() + '\n' +
                     newValue.getType() + '\n' +
                     newValue.getDocumentationType() + '\n' +

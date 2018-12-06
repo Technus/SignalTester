@@ -384,6 +384,7 @@ public class FileSystemCollection<TDocument> implements MongoCollection<TDocumen
             }
 
             @Override
+            @Deprecated
             public void forEach(Block<? super TResult> block) {
                 list.forEach(block::apply);
             }

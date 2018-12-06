@@ -1,6 +1,6 @@
 package com.github.technus.signalTester.plugin.jython;
 
-import com.github.technus.runtimeDoc.type.ClassDocumentation;
+import com.github.technus.runtimeDoc.annotatedElement.type.ClassDocumentation;
 import com.github.technus.signalTester.SignalTesterHeadless;
 import com.github.technus.signalTester.plugin.Plugin;
 import com.github.technus.signalTester.plugin.PluginDocumentation;
