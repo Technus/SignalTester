@@ -1,5 +1,6 @@
 package com.github.technus.dbAdditions.mongoDB;
 
+import com.github.technus.dbAdditions.mongoDB.conventions.OptionalConvention;
 import com.github.technus.dbAdditions.mongoDB.conventions.RemovalConvention;
 import com.mongodb.MongoClient;
 import org.bson.BsonDocument;
@@ -18,7 +19,7 @@ import java.util.Arrays;
 import java.util.List;
 
 public class SafePOJO {
-    public static List<Convention> CONVENTIONS = Arrays.asList(Conventions.CLASS_AND_PROPERTY_CONVENTION, Conventions.ANNOTATION_CONVENTION, RemovalConvention.INSTANCE);
+    public static List<Convention> CONVENTIONS = Arrays.asList(Conventions.CLASS_AND_PROPERTY_CONVENTION, Conventions.ANNOTATION_CONVENTION, RemovalConvention.INSTANCE, OptionalConvention.INSTANCE);
 
     private SafePOJO(){
 
