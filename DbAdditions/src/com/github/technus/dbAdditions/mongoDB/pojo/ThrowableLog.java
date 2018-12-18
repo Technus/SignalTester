@@ -80,9 +80,9 @@ public class ThrowableLog {
         }
         if (t.getSuppressed().length > 0) {
             suppressed = new ArrayList<>();
-            for (Throwable supressedThrowable :
+            for (Throwable suppressedThrowable :
                     t.getSuppressed()) {
-                suppressed.add(new ThrowableLog(supressedThrowable,depthLevelsCount));
+                suppressed.add(new ThrowableLog(suppressedThrowable,depthLevelsCount));
             }
         } else {
             suppressed = null;

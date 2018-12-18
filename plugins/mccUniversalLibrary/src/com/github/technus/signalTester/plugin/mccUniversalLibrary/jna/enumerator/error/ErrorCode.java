@@ -1,0 +1,368 @@
+package com.github.technus.signalTester.plugin.mccUniversalLibrary.jna.enumerator.error;
+
+import java.util.HashMap;
+
+public enum ErrorCode {
+    NOERRORS(0, "No error occurred"),
+    BADBOARD(1, "Invalid board number specified"),
+    DEADDIGITALDEV(2, "Digital I/O device is not responding"),
+    DEADCOUNTERDEV(3, "Counter I/O device is not responding"),
+    DEADDADEV(4, "D/A is not responding"),
+    DEADADDEV(5, "A/D is not responding"),
+    NOTDIGITALCONF(6, "Specified board does not have digital I/O"),
+    NOTCOUNTERCONF(7, "Specified board does not have a counter"),
+    NOTDACONF(8, "Specified board is does not have D/A"),
+    NOTADCONF(9, "Specified board does not have A/D"),
+    NOTMUXCONF(10, "Specified board does not have thermocouple inputs"),
+    BADPORTNUM(11, "Invalid port number specified"),
+    BADCOUNTERDEVNUM(12, "Invalid counter device"),
+    BADDADEVNUM(13, "Invalid D/A device"),
+    BADSAMPLEMODE(14, "Invalid sampling mode option specified"),
+    BADINT(15, "Board configured for invalid interrupt level"),
+    BADADCHAN(16, "Invalid A/D channel Specified"),
+    BADCOUNT(17, "Invalid count specified"),
+    BADCNTRCONFIG(18, "invalid counter configuration specified"),
+    BADDAVAL(19, "Invalid D/A output value specified"),
+    BADDACHAN(20, "Invalid D/A channel specified"),
+    ALREADYACTIVE(22, "A background process is already in progress"),
+    PAGEOVERRUN(23, "DMA transfer crossed page boundary, may have gaps in data"),
+    BADRATE(24, "Inavlid sampling rate specified"),
+    COMPATMODE(25, "Board switches set for \"compatible\" mode"),
+    TRIGSTATE(26, "Incorrect intial trigger state D0 must=TTL low)"),
+    ADSTATUSHUNG(27, "A/D is not responding"),
+    TOOFEW(28, "Too few samples before trigger occurred"),
+    OVERRUN(29, "Data lost due to overrun, rate too high"),
+    BADRANGE(30, "Invalid range specified"),
+    NOPROGGAIN(31, "Board does not have programmable gain"),
+    BADFILENAME(32, "Not a legal DOS filename"),
+    DISKISFULL(33, "Couldn't complete, disk is full"),
+    COMPATWARN(34, "Board is in compatible mode, so DMA will be used"),
+    BADPOINTER(35, "Invalid pointer (NULL)"),
+    TOOMANYGAINS(36, "Too many gains"),
+    RATEWARNING(37, "Rate may be too high for interrupt I/O"),
+    CONVERTDMA(38, "CONVERTDATA cannot be used with DMA I/O"),
+    DTCONNECTERR(39, "Board doesn't have DT Connect"),
+    FORECONTINUOUS(40, "CONTINUOUS can only be used with BACKGROUND"),
+    BADBOARDTYPE(41, "This function can not be used with this board"),
+    WRONGDIGCONFIG(42, "Digital I/O is configured incorrectly"),
+    NOTCONFIGURABLE(43, "Digital port is not configurable"),
+    BADPORTCONFIG(44, "Invalid port configuration specified"),
+    BADFIRSTPOINT(45, "First point argument is not valid"),
+    ENDOFFILE(46, "Attempted to read past end of file"),
+    NOT8254CTR(47, "This board does not have an 8254 counter"),
+    NOT9513CTR(48, "This board does not have a 9513 counter"),
+    BADTRIGTYPE(49, "Invalid trigger type"),
+    BADTRIGVALUE(50, "Invalid trigger value"),
+    BADOPTION(52, "Invalid option specified for this function"),
+    BADPRETRIGCOUNT(53, "Invalid pre-trigger count sepcified"),
+    BADDIVIDER(55, "Invalid fout divider value"),
+    BADSOURCE(56, "Invalid source value"),
+    BADCOMPARE(57, "Invalid compare value"),
+    BADTIMEOFDAY(58, "Invalid time of day value"),
+    BADGATEINTERVAL(59, "Invalid gate interval value"),
+    BADGATECNTRL(60, "Invalid gate control value"),
+    BADCOUNTEREDGE(61, "Invalid counter edge value"),
+    BADSPCLGATE(62, "Invalid special gate value"),
+    BADRELOAD(63, "Invalid reload value"),
+    BADRECYCLEFLAG(64, "Invalid recycle flag value"),
+    BADBCDFLAG(65, "Invalid BCD flag value"),
+    BADDIRECTION(66, "Invalid count direction value"),
+    BADOUTCONTROL(67, "Invalid output control value"),
+    BADBITNUMBER(68, "Invalid bit number"),
+    NONEENABLED(69, "None of the counter channels are enabled"),
+    BADCTRCONTROL(70, "Element of control array not ENABLED/DISABLED"),
+    BADEXPCHAN(71, "Invalid EXP channel"),
+    WRONGADRANGE(72, "Wrong A/D range selected for cbtherm"),
+    OUTOFRANGE(73, "Temperature input is out of range"),
+    BADTEMPSCALE(74, "Invalid temperate scale"),
+    BADERRCODE(75, "Invalid error code specified"),
+    NOQUEUE(76, "Specified board does not have chan/gain queue"),
+    CONTINUOUSCOUNT(77, "CONTINUOUS can not be used with this count value"),
+    UNDERRUN(78, "D/A FIFO hit empty while doing output"),
+    BADMEMMODE(79, "Invalid memory mode specified"),
+    FREQOVERRUN(80, "Measured frequency too high for gating interval"),
+    NOCJCCHAN(81, "Board does not have CJC chan configured"),
+    BADCHIPNUM(82, "Invalid chip number used with cbC9513Init"),
+    DIGNOTENABLED(83, "Digital I/O not enabled"),
+    CONVERT16BITS(84, "CONVERT option not allowed with 16 bit A/D"),
+    NOMEMBOARD(85, "EXTMEMORY option requires memory board"),
+    DTACTIVE(86, "Memory I/O while DT Active"),
+    NOTMEMCONF(87, "Specified board is not a memory board"),
+    ODDCHAN(88, "First chan in queue can not be odd"),
+    CTRNOINIT(89, "Counter was not initialized"),
+    NOT8536CTR(90, "Specified counter is not an 8536"),
+    FREERUNNING(91, "A/D sampling is not timed"),
+    INTERRUPTED(92, "Operation interrupted with CTRL-C"),
+    NOSELECTORS(93, "Selector could not be allocated"),
+    NOBURSTMODE(94, "Burst mode is not supported on this board"),
+    NOTWINDOWSFUNC(95, "This function not available in Windows lib"),
+    NOTSIMULCONF(96, "Not configured for simultaneous update"),
+    EVENODDMISMATCH(97, "Even channel in odd slot in the queue"),
+    M1RATEWARNING(98, "DAS16/M1 sample rate too fast"),
+    NOTRS485(99, "Board is not an RS-485 board"),
+    NOTDOSFUNC(100, "This function not avaliable in DOS"),
+    RANGEMISMATCH(101, "Unipolar and Bipolar can not be used together in A/D que"),
+    CLOCKTOOSLOW(102, "Sample rate too fast for clock jumper setting"),
+    BADCALFACTORS(103, "Cal factors were out of expected range of values"),
+    BADCONFIGTYPE(104, "Invalid configuration type information requested"),
+    BADCONFIGITEM(105, "Invalid configuration item specified"),
+    NOPCMCIABOARD(106, "Can't acces PCMCIA board"),
+    NOBACKGROUND(107, "Board does not support background I/O"),
+    STRINGTOOSHORT(108, "String passed to cbGetBoardName is to short"),
+    CONVERTEXTMEM(109, "Convert data option not allowed with external memory"),
+    BADEUADD(110, "e_ToEngUnits addition error"),
+    DAS16JRRATEWARNING(111, "use 10 MHz clock for rates > 125KHz"),
+    DAS08TOOLOWRATE(112, "DAS08 rate set too low for AInScan warning"),
+    AMBIGSENSORONGP(114, "more than one sensor type defined for EXP-GP"),
+    NOSENSORTYPEONGP(115, "no sensor type defined for EXP-GP"),
+    NOCONVERSIONNEEDED(116, "12 bit board without chan tags - converted in ISR"),
+    NOEXTCONTINUOUS(117, "External memory cannot be used in CONTINUOUS mode"),
+    INVALIDPRETRIGCONVERT(118, "cbAConvertPretrigData was called after failure in cbAPretrig"),
+    BADCTRREG(119, "bad arg to CLoad for 9513"),
+    BADTRIGTHRESHOLD(120, "Invalid trigger threshold specified in cbSetTrigger"),
+    BADPCMSLOTREF(121, "No PCM card in specified slot"),
+    AMBIGPCMSLOTREF(122, "More than one MCC PCM card in slot"),
+    BADSENSORTYPE(123, "Bad sensor type selected in Instacal"),
+    DELBOARDNOTEXIST(124, "tried to delete board number which doesn't exist"),
+    NOBOARDNAMEFILE(125, "board name file not found"),
+    CFGFILENOTFOUND(126, "configuration file not found"),
+    NOVDDINSTALLED(127, "CBUL.386 device driver not installed"),
+    NOWINDOWSMEMORY(128, "No Windows memory available"),
+    OUTOFDOSMEMORY(129, "ISR data struct alloc failure"),
+    OBSOLETEOPTION(130, "Obsolete option for cbGetConfig/cbSetConfig"),
+    NOPCMREGKEY(131, "No registry entry for this PCMCIA board"),
+    NOCBUL32SYS(132, "CBUL32.SYS device driver is not loaded"),
+    NODMAMEMORY(133, "No DMA buffer available to device driver"),
+    IRQNOTAVAILABLE(134, "IRQ in being used by another device"),
+    NOT7266CTR(135, "This board does not have an LS7266 counter"),
+    BADQUADRATURE(136, "Invalid quadrature specified"),
+    BADCOUNTMODE(137, "Invalid counting mode specified"),
+    BADENCODING(138, "Invalid data encoding specified"),
+    BADINDEXMODE(139, "Invalid index mode specified"),
+    BADINVERTINDEX(140, "Invalid invert index specified"),
+    BADFLAGPINS(141, "Invalid flag pins specified"),
+    NOCTRSTATUS(142, "This board does not support cbCStatus()"),
+    NOGATEALLOWED(143, "Gating and indexing not allowed simultaneously"),
+    NOINDEXALLOWED(144, "Indexing not allowed in non-quadratue mode"),
+    OPENCONNECTION(145, "Temperature input has open connection"),
+    BMCONTINUOUSCOUNT(146, "Count must be integer multiple of packetsize for recycle mode."),
+    BADCALLBACKFUNC(147, "Invalid pointer to callback function passed as arg"),
+    MBUSINUSE(148, "MetraBus in use"),
+    MBUSNOCTLR(149, "MetraBus I/O card has no configured controller card"),
+    BADEVENTTYPE(150, "Invalid event type specified for this board."),
+    ALREADYENABLED(151, "An event handler has already been enabled for this event type"),
+    BADEVENTSIZE(152, "Invalid event count specified."),
+    CANTINSTALLEVENT(153, "Unable to install event handler"),
+    BADBUFFERSIZE(154, "Buffer is too small for operation"),
+    BADAIMODE(155, "Invalid analog input mode(RSE, NRSE, or DIFF)"),
+    BADSIGNAL(156, "Invalid signal type specified."),
+    BADCONNECTION(157, "Invalid connection specified."),
+    BADINDEX(158, "Invalid index specified, or reached end of internal connection list."),
+    NOCONNECTION(159, "No connection is assigned to specified signal."),
+    BADBURSTIOCOUNT(160, "Count cannot be greater than the FIFO size for BURSTIO mode."),
+    DEADDEV(161, "Device has stopped responding. Please check connections."),
+
+    INVALIDACCESS(163, "Invalid access or privilege for specified operation"),
+    UNAVAILABLE(164, "Device unavailable at time of request. Please repeat operation."),
+    NOTREADY(165, "Device is not ready to send data. Please repeat operation."),
+    BITUSEDFORALARM(169, "The specified bit is used for alarm."),
+    PORTUSEDFORALARM(170, "One or more bits on the specified port are used for alarm."),
+    PACEROVERRUN(171, "Pacer overrun, external clock rate too fast."),
+    BADCHANTYPE(172, "Invalid channel type specified."),
+    BADTRIGSENSE(173, "Invalid trigger sensitivity specified."),
+    BADTRIGCHAN(174, "Invalid trigger channel specified."),
+    BADTRIGLEVEL(175, "Invalid trigger level specified."),
+    NOPRETRIGMODE(176, "Pre-trigger mode is not supported for the specified trigger type."),
+    BADDEBOUNCETIME(177, "Invalid debounce time specified."),
+    BADDEBOUNCETRIGMODE(178, "Invalid debounce trigger mode specified."),
+    BADMAPPEDCOUNTER(179, "Invalid mapped counter specified."),
+    BADCOUNTERMODE(180, "This function can not be used with the current mode of the specified counter."),
+    BADTCCHANMODE(181, "Single-Ended mode can not be used for temperature input."),
+    BADFREQUENCY(182, "Invalid frequency specified."),
+    BADEVENTPARAM(183, "Invalid event parameter specified."),
+    NONETIFC(184, "No interface devices were found with required PAN ID and/or RF Channel."),
+    DEADNETIFC(185, "The interface device(s) with required PAN ID and RF Channel has failed. Please check connection."),
+    NOREMOTEACK(186, "The remote device is not responding to commands and queries. Please check device."),
+    INPUTTIMEOUT(187, "The device acknowledged the operation, but has not completed before the timeout."),
+    MISMATCHSETPOINTCOUNT(188, "Number of Setpoints not equal to number of channels with setpoint flag set"),
+    INVALIDSETPOINTLEVEL(189, "Setpoint Level is outside channel range"),
+    INVALIDSETPOINTOUTPUTTYPE(190, "Setpoint Output Type is invalid*/"),
+    INVALIDSETPOINTOUTPUTVALUE(191, "Setpoint Output Value is outside channel range"),
+    INVALIDSETPOINTLIMITS(192, "Setpoint Comparison limit B greater than Limit A"),
+    STRINGTOOLONG(193, "The string entered is too long for the operation and/or device."),
+    INVALIDLOGIN(194, "The account name and/or password entered is incorrect."),
+    SESSIONINUSE(195, "The device session is already in use."),
+    NOEXTPOWER(196, "External power is not connected."),
+    BADDUTYCYCLE(197, "Invalid duty cycle specified."),
+    BADINITIALDELAY(199, "Invalid initial delay specified"),
+
+    NOTEDSSENSOR(1000, "No TEDS sensor was detected on the specified channel."),
+    INVALIDTEDSSENSOR(1001, "Connected TEDS sensor to the specified channel is not supported"),
+    CALIBRATIONFAILED(1002, "Calibration failed"),
+    BITUSEDFORTERMINALCOUNTSTATUS(1003, "The specified bit is used for terminal count stauts."),
+    PORTUSEDFORTERMINALCOUNTSTATUS(1004, "One or more bits on the specified port are used for terminal count stauts."),
+    BADEXCITATION(1005, "Invalid excitation specified"),
+    BADBRIDGETYPE(1006, "Invalid bridge type specified"),
+    BADLOADVAL(1007, "Invalid load value specified"),
+    BADTICKSIZE(1008, "Invalid tick size specified"),
+    BTHCONNECTIONFAILED(1013, "Bluetooth connection failed"),
+    INVALIDBTHFRAME(1014, "Invalid Bluetooth frame"),
+    BADTRIGEVENT(1015, "Invalid trigger event specified"),
+    NETCONNECTIONFAILED(1016, "Network connection failed"),
+    DATASOCKETCONNECTIONFAILED(1017, "Data socket connection failed"),
+    INVALIDNETFRAME(1018, "Invalid Network frame"),
+    NETTIMEOUT(1019, "Network device did not respond within expected time"),
+    NETDEVNOTFOUND(1020, "Network device not found"),
+    INVALIDCONNECTIONCODE(1021, "Invalid connection code"),
+    CONNECTIONCODEIGNORED(1022, "Connection code ignored"),
+    NETDEVINUSE(1023, "Network device already in use"),
+    NETDEVINUSEBYANOTHERPROC(1024, "Network device already in use by another process"),
+    SOCKETDISCONNECTED(1025, "Socket Disconnected"),
+    BOARDNUMINUSE(1026, "Board Number already in use"),
+    DEVALREADYCREATED(1027, "Specified DAQ device already created"),
+    BOARDNOTEXIST(1028, "Tried to release a board which doesn't exist"),
+    INVALIDNETHOST(1029, "Invalid host specified"),
+    INVALIDNETPORT(1030, "Invalid port specified"),
+    INVALIDIFC(1031, "Invalid interface specified"),
+    INVALIDAIINPUTMODE(1032, "Invalid input mode specified"),
+    AIINPUTMODENOTCONFIGURABLE(1033, "Input mode not configurable"),
+    INVALIDEXTPACEREDGE(1034, "Invalid external pacer edge"),
+    CMREXCEEDED(1035, "Common-mode voltage range exceeded"),
+
+    /******************************************************************
+     ;*
+     ;*               **** ATTENTION ALL DEVELOPERS ****
+     ;*
+     ;* When adding error codes, first determine if these are errors
+     ;* that can be caused by the user or if they will never happen
+     ;* in normal operation unless there is a bug.
+     ;*
+     ;* Only if they are user error should you put them in the list
+     ;* above.  In that case be sure to give them a name that means
+     ;* something from the user's point of view - rather than from the
+     ;* programmer.  For example NO_VDD_INSTALLED rather than
+     ;* DEVICE_CALL_FAILED.
+     ;*
+     ;* Do not add any errors to the section above without getting
+     ;* agreement by the dept. so that all user header files and header
+     ;* files for other versions of the library can be updates together.
+     ;*
+     ;* If it's an internal error, then be sure to add it to the
+     ;* correct section below.
+     ;*
+     ;********************************************************************/
+
+    /* Internal errors returned by 16 bit library */
+    INTERNALERR(200,"200-299 Internal library error"),
+    CANT_LOCK_DMA_BUF(201,"DMA buffer could not be locked"),
+    DMA_IN_USE(202,"DMA already controlled by another VxD"),
+    BAD_MEM_HANDLE(203,"Invalid Windows memory handle"),
+    NO_ENHANCED_MODE(204,"Windows Enhance mode is not running"),
+    MEMBOARDPROGERROR(211,"Program error getting memory board source"),
+
+    /* Internal errors returned by 32 bit library */
+    INTERNAL32_ERR(300,"300-399 32 bit library internal errors"),
+    NO_MEMORY_FOR_BUFFER(301,"32 bit - default buffer allocation when no user buffer used with file"),
+    WIN95_CANNOT_SETUP_ISR_DATA(302,"32 bit - failure on INIT_ISR_DATA IOCTL call"),
+    WIN31_CANNOT_SETUP_ISR_DATA(303,"32 bit - failure on INIT_ISR_DATA IOCTL call"),
+    CFG_FILE_READ_FAILURE(304,"32 bit - error reading board configuration file"),
+    CFG_FILE_WRITE_FAILURE(305,"32 bit - error writing board configuration file"),
+    CREATE_BOARD_FAILURE(306,"32 bit - failed to create board"),
+    DEVELOPMENT_OPTION(307,"32 bit - Config Option item used in development only"),
+    CFGFILE_CANT_OPEN(308,"32 bit - cannot open configuration file."),
+    CFGFILE_BAD_ID(309,"32 bit - incorrect file id."),
+    CFGFILE_BAD_REV(310,"32 bit - incorrect file version."),
+    CFGFILE_NOINSERT(311,""),/*; */
+    CFGFILE_NOREPLACE(312,""),/*; */
+    BIT_NOT_ZERO(313,""),/*; */
+    BIT_NOT_ONE(314,""),/*; */
+    BAD_CTRL_REG(315,"No control register at this location."),
+    BAD_OUTP_REG(316,"No output register at this location."),
+    BAD_RDBK_REG(317,"No read back register at this location."),
+    NO_CTRL_REG(318,"No control register on this board."),
+    NO_OUTP_REG(319,"No control register on this board."),
+    NO_RDBK_REG(320,"No control register on this board."),
+    CTRL_REG_FAIL(321,"internal ctrl reg test failed."),
+    OUTP_REG_FAIL(322,"internal output reg test failed."),
+    RDBK_REG_FAIL(323,"internal read back reg test failed."),
+    FUNCTION_NOT_IMPLEMENTED(324,""),
+    BAD_RTD_CONVERSION(325,"Overflow in RTD calculation"),
+    NO_PCI_BIOS(326,"PCI BIOS not present in the PC"),
+    BAD_PCI_INDEX(327,"Invalid PCI board index passed to PCI BIOS"),
+    NO_PCI_BOARD(328,"Specified PCI board not detected"),
+    PCI_ASSIGN_FAILED(329,"PCI resource assignment failed"),
+    PCI_NO_ADDRESS(330,"No PCI address returned"),
+    PCI_NO_IRQ(331,"No PCI IRQ returned"),
+    CANT_INIT_ISR_INFO(332,"IOCTL call failed on VDD_API_INIT_ISR_INFO"),
+    CANT_PASS_USER_BUFFER(333,"IOCTL call failed on VDD_API_PASS_USER_BUFFER"),
+    CANT_INSTALL_INT(334,"IOCTL call failed on VDD_API_INSTALL_INT"),
+    CANT_UNINSTALL_INT(335,"IOCTL call failed on VDD_API_UNINSTALL_INT"),
+    CANT_START_DMA(336,"IOCTL call failed on VDD_API_START_DMA"),
+    CANT_GET_STATUS(337,"IOCTL call failed on VDD_API_GET_STATUS"),
+    CANT_GET_PRINT_PORT(338,"IOCTL call failed on VDD_API_GET_PRINT_PORT"),
+    CANT_MAP_PCM_CIS(339,"IOCTL call failed on VDD_API_MAP_PCM_CIS"),
+    CANT_GET_PCM_CFG(340,"IOCTL call failed on VDD_API_GET_PCM_CFG"),
+    CANT_GET_PCM_CCSR(341,"IOCTL call failed on VDD_API_GET_PCM_CCSR"),
+    CANT_GET_PCI_INFO(342,"IOCTL call failed on VDD_API_GET_PCI_INFO"),
+    NO_USB_BOARD(343,"Specified USB board not detected"),
+    NOMOREFILES(344,"No more files in the directory"),
+    BADFILENUMBER(345,"Invalid file number"),
+    INVALIDSTRUCTSIZE(346,"Invalid structure size"),
+    LOSSOFDATA(347,"EOF marker not found, possible loss of data"),
+    INVALIDBINARYFILE(348,"File is not a valid MCC binary file"),
+    INVALIDDELIMITER(349,"Invlid delimiter specified for CSV file"),
+    NO_BTH_BOARD(350,"Specified Bluetooth board not detected"),
+    NO_NET_BOARD(351,"Specified Network board not detected"),
+
+    /* DOS errors are remapped by adding DOS_ERR_OFFSET to them */
+    DOS_ERR_OFFSET(500,""),
+
+    /* These are the commonly occurring remapped DOS error codes */
+    DOSBADFUNC(501,""),
+    DOSFILENOTFOUND(502,""),
+    DOSPATHNOTFOUND(503,""),
+    DOSNOHANDLES(504,""),
+    DOSACCESSDENIED(505,""),
+    DOSINVALIDHANDLE(506,""),
+    DOSNOMEMORY(507,""),
+    DOSBADDRIVE(515,""),
+    DOSTOOMANYFILES(518,""),
+    DOSWRITEPROTECT(519,""),
+    DOSDRIVENOTREADY(521,""),
+    DOSSEEKERROR(525,""),
+    DOSWRITEFAULT(529,""),
+    DOSREADFAULT(530,""),
+    DOSGENERALFAULT(531,""),
+
+    /* Windows internal error codes */
+    WIN_CANNOT_ENABLE_INT(603,""),
+    WIN_CANNOT_DISABLE_INT(605,""),
+    WIN_CANT_PAGE_LOCK_BUFFER(606,""),
+    NO_PCM_CARD(630,"");
+
+
+    private static final HashMap<Integer, ErrorCode> map=new HashMap<>();
+    public final String description;
+    public final int value;
+
+    ErrorCode(int value, String description) {
+        this.value = value;
+        this.description = description.equals("")?this.name():description;
+        register();
+    }
+
+    private void register(){
+        if(map.containsKey(value)){
+            throw new EnumConstantNotPresentException(this.getClass(),this.name());
+        }
+        map.put(value,this);
+    }
+
+    public static ErrorCode get(int code){
+        return map.get(code);
+    }
+
+    public boolean isInternal(){
+        return value>=200 && value<1000;
+    }
+}

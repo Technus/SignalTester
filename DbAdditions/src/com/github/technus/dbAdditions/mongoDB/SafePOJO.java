@@ -1,6 +1,5 @@
 package com.github.technus.dbAdditions.mongoDB;
 
-import com.github.technus.dbAdditions.mongoDB.conventions.OptionalConvention;
 import com.github.technus.dbAdditions.mongoDB.conventions.RemovalConvention;
 import com.mongodb.MongoClient;
 import org.bson.BsonDocument;
@@ -19,7 +18,7 @@ import java.util.Arrays;
 import java.util.List;
 
 public class SafePOJO {
-    public static List<Convention> CONVENTIONS = Arrays.asList(Conventions.CLASS_AND_PROPERTY_CONVENTION, Conventions.ANNOTATION_CONVENTION, RemovalConvention.INSTANCE, OptionalConvention.INSTANCE);
+    public static List<Convention> CONVENTIONS = Arrays.asList(Conventions.CLASS_AND_PROPERTY_CONVENTION, Conventions.ANNOTATION_CONVENTION, RemovalConvention.INSTANCE);
 
     private SafePOJO(){
 
@@ -43,8 +42,8 @@ public class SafePOJO {
                 }
             }
         }
-        CodecRegistry additonalCodecs=CodecRegistries.fromCodecs(codecList.toArray(new Codec[0]));
-        return CodecRegistries.fromRegistries(MongoClient.getDefaultCodecRegistry(),additonalCodecs,
+        CodecRegistry additionalCodecs=CodecRegistries.fromCodecs(codecList.toArray(new Codec[0]));
+        return CodecRegistries.fromRegistries(MongoClient.getDefaultCodecRegistry(),additionalCodecs,
                 CodecRegistries.fromProviders(SafePOJO.getProviderBuilder(collectionType, defaultType, typeList.toArray(new Class[0]))
                         .register(classList.toArray(new Class[0])).build()));
     }

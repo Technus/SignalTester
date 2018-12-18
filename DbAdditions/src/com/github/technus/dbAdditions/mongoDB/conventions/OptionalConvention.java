@@ -1,21 +1,38 @@
 package com.github.technus.dbAdditions.mongoDB.conventions;
 
-import org.bson.BsonReader;
-import org.bson.BsonWriter;
+import org.bson.*;
 import org.bson.codecs.Codec;
 import org.bson.codecs.DecoderContext;
 import org.bson.codecs.EncoderContext;
+import org.bson.codecs.configuration.CodecRegistry;
 import org.bson.codecs.pojo.ClassModelBuilder;
 import org.bson.codecs.pojo.Convention;
 import org.bson.codecs.pojo.PropertyModelBuilder;
+import org.bson.codecs.pojo.TypeWithTypeParameters;
 import org.bson.codecs.pojo.annotations.BsonProperty;
 
 import java.lang.annotation.Annotation;
 import java.lang.reflect.*;
 import java.util.Locale;
 
+/**
+ *         NullableConvention nullableConvention=new NullableConvention();
+ *         OptionalConvention optionalConvention=new OptionalConvention();
+ *
+ *         ArrayList<Convention> conventions=new ArrayList<>(SafePOJO.CONVENTIONS);
+ *         conventions.add(nullableConvention);
+ *         conventions.add(optionalConvention);
+ *
+ *         CodecRegistry codecRegistry=CodecRegistries.fromRegistries(MongoClient.getDefaultCodecRegistry(),CodecRegistries.fromProviders(
+ *                 PojoCodecProvider.builder().conventions(conventions).automatic(true).build()));
+ *
+ *         nullableConvention.codecRegistry=codecRegistry;
+ *         optionalConvention.codecRegistry=codecRegistry;
+ */
 public class OptionalConvention implements Convention {
-    public static OptionalConvention INSTANCE=new OptionalConvention();
+    public CodecRegistry codecRegistry;
+
+    public OptionalConvention(){}
 
     @Override
     public void apply(ClassModelBuilder<?> classModelBuilder) {
@@ -73,6 +90,30 @@ public class OptionalConvention implements Convention {
                     }
                 }
             }
+            if(clazz!=method.getReturnType()){
+                continue;
+            }
+            for(Parameter parameter:method.getParameters()){
+                String name="";
+                for(Annotation a:parameter.getAnnotations()){
+                    if(a instanceof BsonProperty){
+                        if(!((BsonProperty) a).value().equals("")){
+                            name=((BsonProperty) a).value();
+                        }
+                    }
+                }
+                for(Annotation a:parameter.getAnnotations()){
+                    if(a instanceof BsonOptional){
+                        if(((BsonOptional) a).value().equals("")){
+                            PropertyModelBuilder propertyModelBuilder=classModelBuilder.getProperty(getPropertyName(name.equals("")?parameter.getName():name));
+                            makeOptional(propertyModelBuilder);
+                        } else {
+                            PropertyModelBuilder propertyModelBuilder=classModelBuilder.getProperty(((BsonOptional) a).value());
+                            makeOptional(propertyModelBuilder);
+                        }
+                    }
+                }
+            }
         }
 
         for(Constructor constructor:clazz.getConstructors()){
@@ -121,31 +162,45 @@ public class OptionalConvention implements Convention {
     @SuppressWarnings("unchecked")
     private void makeOptional(PropertyModelBuilder propertyModelBuilder){
         if(propertyModelBuilder!=null){
-            Codec codec=propertyModelBuilder.build().getCodec();
+            Codec codec=codecRegistry.get(((TypeWithTypeParameters)propertyModelBuilder.build().getTypeData()).getType());
+            if(codec instanceof OptionalCodec){
+                return;
+            }
             if(codec==null){
                 throw new Error("Cannot apply since codec is null: "+propertyModelBuilder.getName());
             }
-            Codec optionalCodec=new Codec() {
-                @Override
-                public Object decode(BsonReader bsonReader, DecoderContext decoderContext) {
-                    //try {
-                        return codec.decode(bsonReader, decoderContext);
-                    //}catch (Exception e){
-                    //    return null;
-                    //}
-                }
+            propertyModelBuilder.codec(new OptionalCodec(codec));
+        }
+    }
 
-                @Override
-                public void encode(BsonWriter bsonWriter, Object o, EncoderContext encoderContext) {
-                    codec.encode(bsonWriter, o, encoderContext);
-                }
+    private class OptionalCodec implements Codec{
+        private Codec codec;
 
-                @Override
-                public Class getEncoderClass() {
-                    return codec.getEncoderClass();
-                }
-            };
-            propertyModelBuilder.codec(optionalCodec);
+        private OptionalCodec(Codec codec){
+            this.codec=codec;
+        }
+        @Override
+        public Object decode(BsonReader bsonReader, DecoderContext decoderContext) {
+            AbstractBsonReader abstractBsonReader = (AbstractBsonReader) bsonReader;
+            BsonReaderMark mark = bsonReader.getMark();
+            if(abstractBsonReader.getState()== AbstractBsonReader.State.VALUE &&
+                    bsonReader.getCurrentBsonType() == BsonType.UNDEFINED) {
+                return null;
+            }
+            mark.reset();
+            return codec.decode(bsonReader, decoderContext);
+        }
+
+        @Override
+        @SuppressWarnings("unchecked")
+        public void encode(BsonWriter bsonWriter, Object o, EncoderContext encoderContext) {
+            //cannot just skip since it needs to set the db to empty!?
+            codec.encode(bsonWriter, o, encoderContext);
+        }
+
+        @Override
+        public Class getEncoderClass() {
+            return codec.getEncoderClass();
         }
     }
 }

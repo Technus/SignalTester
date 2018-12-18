@@ -15,12 +15,16 @@
         <module>plugins/AudioSwitcher/native</module>
         <module>plugins/AudioSwitcher</module>
         <module>plugins/Jython</module>
+        <module>plugins/mccUniversalLibrary/native</module>
+        <module>plugins/mccUniversalLibrary</module>
         <module>plugins/NirCmd/native</module>
         <module>plugins/NirCmd</module>
         <module>plugins/PureJavaHID</module>
         <module>plugins/Serial/native</module>
         <module>plugins/Serial</module>
         <module>plugins/WaveForms</module>
+        <module>plugins/nidaqmx</module>
+        <module>plugins/nidaqmx/native</module>
     </modules>
     <build>
         <plugins>
